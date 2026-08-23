@@ -1,11 +1,21 @@
 package oneblock.utils;
 
 import net.md_5.bungee.api.ChatColor;
+
+import java.net.URL;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 
 public class Utils {
     public static final boolean isWorldMinHeightSupported = findMethod(World.class, "getMinHeight");
@@ -69,5 +79,35 @@ public class Utils {
         if (isWorldMinHeightSupported) 
             return world.getMinHeight();
         return 0;
+    }
+
+    public static ItemStack getBase64Head(String base64) {
+        // 1. Create a player head item
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) head.getItemMeta();
+        if (meta == null) return head;
+
+        try {
+            // 2. Decode the base64 string to find the skin URL
+            String decoded = new String(Base64.getDecoder().decode(base64));
+            // Extracts the URL from JSON formatted as: {"textures":{"SKIN":{"url":"http://..."}}}
+            String urlString = decoded.split("\"url\":\"")[1].split("\"")[0];
+            URL textureUrl = new URL(urlString);
+
+            // 3. Create a profile and apply the texture URL
+            PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID(), null);
+            PlayerTextures textures = profile.getTextures();
+            textures.setSkin(textureUrl);
+            profile.setTextures(textures);
+
+            // 4. Set the profile to the skull meta
+            meta.setOwnerProfile(profile);
+            head.setItemMeta(meta);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return head;
     }
 }

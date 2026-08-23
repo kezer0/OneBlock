@@ -48,7 +48,7 @@ public class GUIListener implements Listener {
 		    case INVITE:
 		        pl.closeInventory();
 		        if (e.getRawSlot() == 2)
-		            pl.performCommand("ob accept");
+		            pl.performCommand("is accept");
 		        return;
 		        
 		    case VISIT:
@@ -59,7 +59,7 @@ public class GUIListener implements Listener {
 		        meta = item.getItemMeta();
 		        if (meta == null) return;
 		        command = meta.getDisplayName();
-		        pl.performCommand("ob visit " + command);
+		        pl.performCommand("is visit " + command);
 		        return;
 		        
 		    default: break;

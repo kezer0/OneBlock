@@ -176,8 +176,8 @@ public class OneBlock extends JavaPlugin {
         pluginManager.registerEvents(new GUIListener(), this);
         pluginManager.registerEvents(new TeleportNetherEvent(), this);
         if (placetype == Place.Type.ItemsAdder) pluginManager.registerEvents(new ItemsAdderEvent(), this);
-        getCommand("oneblock").setExecutor(new CommandHandler());
-        getCommand("oneblock").setTabCompleter(new CommandTabCompleter());
+        getCommand("island").setExecutor(new CommandHandler());
+        getCommand("island").setTabCompleter(new CommandTabCompleter());
         
         if (getOffset() == 0) return;
         

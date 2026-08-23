@@ -45,7 +45,7 @@ public final class IslandBlockGenTask implements Runnable {
                     if (!CheckGuest) Guest.remove(uuid);
         		}
         		if (!plugin.isWithinIslandBounds(loc, X_pl, Z_pl) && !CheckGuest) {
-        			player.performCommand("ob j");
+        			player.performCommand("is join");
         			player.sendMessage(Messages.protection);
                 	continue;
                 }

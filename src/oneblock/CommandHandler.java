@@ -58,7 +58,7 @@ public class CommandHandler implements CommandExecutor {
 	
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-    	if (!cmd.getName().equalsIgnoreCase("oneblock")) return false;
+    	if (!cmd.getName().equalsIgnoreCase("island")) return false;
         if (!requirePermission(sender, "oneblock.join")) return true;
         if (args.length == 0) args = new String[] {"j"};
         
@@ -67,10 +67,9 @@ public class CommandHandler implements CommandExecutor {
         String parametr = args[0].toLowerCase();
         switch (parametr) 
         {
-	        case ("j"):
 	        case ("join"):{
 	            if (getOffset() == 0 || getWorld() == null) {
-	            	sender.sendMessage(ChatColor.YELLOW + "First you need to set the reference coordinates '/ob set'.");
+	            	sender.sendMessage(ChatColor.YELLOW + "First you need to set the reference coordinates '/is set'.");
 	            	return true;
 	            }
 	            if (player == null) return false;
@@ -111,7 +110,6 @@ public class CommandHandler implements CommandExecutor {
 	            player.teleport(plugin.getLeave());
 	            return true;
 	        }
-	        case ("v"):
 	        case ("visit"):{
 	        	if (!requirePermission(sender, "oneblock.visit")) return true;
 	        	if (player == null) return false;
@@ -122,7 +120,7 @@ public class CommandHandler implements CommandExecutor {
 	            OfflinePlayer inv = Bukkit.getOfflinePlayer(args[1]);
 	        	if (inv == null) return true;
 	    		if (inv == player) {
-	    			player.performCommand("ob j");
+	    			player.performCommand("is join");
 	    			return true;
 	    		}
 	    		UUID uuid = inv.getUniqueId();
@@ -215,7 +213,7 @@ public class CommandHandler implements CommandExecutor {
 	        	int memberID = plugin.findNearestRegionId(member_ex.getLocation());
 	        	if (memberID == ownerID) {
 	        		if (!member_ex.hasPermission("oneblock.set"))
-	        			member_ex.performCommand("ob j");
+	        			member_ex.performCommand("is join");
 	        		info.removeBar(member_ex);
 	        		sender.sendMessage(member.getName() + Messages.kicked);
 	        	}

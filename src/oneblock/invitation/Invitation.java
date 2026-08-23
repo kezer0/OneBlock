@@ -56,7 +56,7 @@ public class Invitation extends AbstractInvitation {
 		CommandHandler.idresetCommand(pl);
 		
 		PlayerInfo.get(inv_.Inviting).addInvite(uuid);
-		pl.performCommand("ob j");
+		pl.performCommand("is join");
 		list.remove(inv_);
 		return true; 
     }

@@ -20,27 +20,148 @@ import com.cryptomorin.xseries.XMaterial;
 import oneblock.ChestItems;
 import oneblock.Messages;
 import oneblock.PlayerInfo;
+import oneblock.utils.Utils;
 import oneblock.worldguard.OBWorldGuard;
+
+import static oneblock.utils.Utils.getBase64Head;
 
 public class GUI {
 	public static boolean enabled = true;
 	public static boolean legacy = false;
 	
 	static Inventory topGUI = null;
-	
-	public static void openGUI(Player p) {
-		if (!enabled) return;
-		if (p == null) return;
-		Inventory mainGUI = Bukkit.createInventory(new GUIHolder(GUIHolder.GUIType.MAIN_MENU), 18, Messages.baseGUI);
-		mainGUI.addItem(setMeta(XMaterial.GRASS_BLOCK, ChatColor.GREEN + "/ob join"));
-		mainGUI.setItem(9, setMeta(XMaterial.PODZOL, ChatColor.GREEN + "/ob leave"));
-		if (p.hasPermission("Oneblock.visit")) mainGUI.setItem(2, setMeta(XMaterial.MELON, ChatColor.GREEN + "/ob visit"));
-		if (p.hasPermission("Oneblock.allow_visit")) mainGUI.setItem(10, setMeta(XMaterial.EMERALD_BLOCK, ChatColor.GREEN + "/ob allow_visit"));
-		mainGUI.setItem(4, setMeta(XMaterial.GOLD_BLOCK, ChatColor.GOLD + "/ob top"));
-		mainGUI.setItem(6, setMeta(XMaterial.PAPER, ChatColor.GRAY + "/ob help"));
-		if (p.hasPermission("Oneblock.idreset"))
-			mainGUI.setItem(8, setMeta(XMaterial.BARRIER, ChatColor.RED + "/ob idreset", Messages.idresetGUI));
 
+	public static void openGUI(Player p) {
+		if (!enabled || p == null) return;
+
+		// Full 54-slot (6-row) inventory
+		Inventory mainGUI = Bukkit.createInventory(new GUIHolder(GUIHolder.GUIType.MAIN_MENU), 54, ChatColor.DARK_GRAY + "Your Island");
+
+		// Fill entire GUI with Gray Stained Glass Panes
+		ItemStack borderPane = setMeta(XMaterial.GRAY_STAINED_GLASS_PANE, " ");
+		for (int i = 0; i < 54; i++) {
+			mainGUI.setItem(i, borderPane);
+		}
+
+		// --- ROW 2: Player Stats Head (Slot 13) ---
+		ItemStack playerHead = getPlayerHead(p, ChatColor.GREEN + p.getName() + "'s Island");
+		ItemMeta headMeta = playerHead.getItemMeta();
+		if (headMeta != null) {
+			headMeta.setLore(Arrays.asList(
+					ChatColor.GRAY + "View and manage your core island",
+					ChatColor.GRAY + "progression and statistics.",
+					"",
+					ChatColor.GRAY + "Phase: " + ChatColor.GREEN + "1",
+					ChatColor.GRAY + "Blocks Mined: " + ChatColor.GREEN + "37 / 100",
+					ChatColor.GRAY + "Mining Level: " + ChatColor.GREEN + "4",
+					ChatColor.GRAY + "Balance: " + ChatColor.GOLD + "$1,250",
+					"",
+					ChatColor.YELLOW + "Click to view profile!"
+			));
+			playerHead.setItemMeta(headMeta);
+		}
+		mainGUI.setItem(13, playerHead);
+
+		// --- ROW 3: Core Feature Grid ---
+
+		// Upgrades (Slot 19)
+		mainGUI.setItem(19, setMeta(XMaterial.DIAMOND_SWORD,
+				ChatColor.GREEN + "Island Upgrades", 1,
+				ChatColor.GRAY + "Enhance your island limits, generator",
+				ChatColor.GRAY + "speed, and team sizes.",
+				"",
+				ChatColor.YELLOW + "Click to view!"
+		));
+
+		// Quests (Slot 20)
+		mainGUI.setItem(20, setMeta(XMaterial.ITEM_FRAME,
+				ChatColor.GREEN + "Quests & Chapters", 1,
+				ChatColor.GRAY + "Each island has its own series of",
+				ChatColor.GRAY + "tasks for you to complete!",
+				"",
+				ChatColor.GRAY + "Complete tasks to earn small " + ChatColor.GOLD + "rewards" + ChatColor.GRAY + ",",
+				ChatColor.GRAY + "or complete entire chapters for big ones!",
+				"",
+				ChatColor.RED + "Coming soon!"
+		));
+
+		// Skills (Slot 21)
+		mainGUI.setItem(21, setMeta(XMaterial.BOOK,
+				ChatColor.GREEN + "Skills & Levels", 1,
+				ChatColor.GRAY + "Level up your skill trees to unlock",
+				ChatColor.GRAY + "passive buffs and unique perks.",
+				"",
+				ChatColor.RED + "Coming soon!"
+		));
+
+		// Teleport / Home (Slot 22)
+		mainGUI.setItem(22, setMeta(XMaterial.GRASS_BLOCK,
+				ChatColor.GREEN + "Island Home", 1,
+				ChatColor.GRAY + "Teleport directly back to your primary",
+				ChatColor.GRAY + "island spawn location.",
+				"",
+				ChatColor.YELLOW + "Click to teleport!"
+		));
+
+		// Members (Slot 23)
+		mainGUI.setItem(23, setMeta(XMaterial.WRITABLE_BOOK,
+				ChatColor.GREEN + "Island Team", 1,
+				ChatColor.GRAY + "Manage island co-op members,",
+				ChatColor.GRAY + "invites, and role permissions.",
+				"",
+				ChatColor.RED + "Coming soon!"
+		));
+
+		// Settings (Slot 24)
+		mainGUI.setItem(24, setMeta(XMaterial.CLOCK,
+				ChatColor.GREEN + "Island Settings", 1,
+				ChatColor.GRAY + "Configure visitor rules, PvP states,",
+				ChatColor.GRAY + "and island privacy modes.",
+				"",
+				ChatColor.RED + "Coming soon!"
+		));
+
+		// Top Leaderboard (Slot 25)
+		mainGUI.setItem(25, setMeta(XMaterial.CHEST,
+				ChatColor.GREEN + "Top Islands", 1,
+				ChatColor.GRAY + "Check out the highest-ranking islands",
+				ChatColor.GRAY + "across the entire server.",
+				"",
+				ChatColor.YELLOW + "Click to open!"
+		));
+
+		// --- ROW 4: Secondary Tools ---
+
+		// Warp / Visit (Slot 31)
+		mainGUI.setItem(31, setMeta(XMaterial.CRAFTING_TABLE,
+				ChatColor.GREEN + "Visit Islands", 1,
+				ChatColor.GRAY + "Explore and visit open public islands",
+				ChatColor.GRAY + "created by other players.",
+				"",
+				ChatColor.YELLOW + "Click to browse!"
+		));
+
+		ItemStack earthHead = getBase64Head("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTU3N2M0ZGUxZjUxYTcwNzIyMDIzZTg1NmI1NDNjZDU3MGYxZDBlZTZiOWQxNjdiNTkwMjhjZTFiYzkyZTQ1OCJ9fX0=");
+		ItemMeta earthMeta = earthHead.getItemMeta();
+		if (earthMeta != null) {
+			earthMeta.setItemName(ChatColor.AQUA + "Travel");
+			earthMeta.setLore(Arrays.asList(
+					ChatColor.GRAY + "Teleport to diffrent places",
+					ChatColor.GRAY + "you have unlocked.",
+					ChatColor.YELLOW + "Click to pick location!"
+			));
+			playerHead.setItemMeta(headMeta);
+		}
+		mainGUI.setItem(48, earthHead);
+		// Close Menu (Slot 49)
+		mainGUI.setItem(49, setMeta(XMaterial.BARRIER,
+				ChatColor.RED + "Close", 1,
+				ChatColor.GRAY + "Close this menu."
+		));
+		mainGUI.setItem(50, setMeta(XMaterial.COOKIE,
+				ChatColor.GOLD + "Shop", 1,
+				ChatColor.GRAY + "Open you the server shop."
+		));
 		p.openInventory(mainGUI);
 	}
 	
@@ -106,7 +227,6 @@ public class GUI {
 	
 	/**
 	 * Opens a GUI displaying the contents of a legacy chest.
-	 * Only works with legacy item-list chests ({@link ChestItems#aliaseslegacy}), not loot tables.
 	 *
 	 * @param p         the player opening the GUI
 	 * @param chestType the chest alias name (must exist in legacy storage)

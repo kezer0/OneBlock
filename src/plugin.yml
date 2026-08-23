@@ -7,11 +7,10 @@ loadbefore: ['Multiverse-Core']
 softdepend: ['PlaceholderAPI', 'WorldGuard', 'ItemsAdder', 'Oraxen', 'Nexo', 'CraftEngine']
 
 commands:
-  oneblock:
+  island:
     description: OneBlock main command.
-    aliases: ob
+    aliases: is
     usage: Are you using the command incorrectly?
-  ob j:
 
 permissions:
     oneblock.set:

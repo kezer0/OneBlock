@@ -38,14 +38,14 @@ public class RespawnJoinEvent implements Listener {
 		World ob = getWorld();
 		if (!from.equals(ob) && to.equals(ob) && loc.getY() != getY() + 1.2013) {
 			e.setCancelled(true);
-			e.getPlayer().performCommand("ob j");
+			e.getPlayer().performCommand("is join");
 		}
     }
     @EventHandler
     public void JoinAuto(final PlayerJoinEvent e) {
 		Player pl = e.getPlayer();
 		if (pl.getWorld().equals(getWorld())) {
-			if (autojoin) pl.performCommand("ob j");
+			if (autojoin) pl.performCommand("is join");
 			if (border) {
 				plugin.UpdateBorderLocation(pl, pl.getLocation());
 				plugin.UpdateBorder(pl);
