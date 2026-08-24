@@ -55,50 +55,69 @@ public class CommandHandler implements CommandExecutor {
 	    }
 	    return true;
 	}
-	
+
+    private boolean joinIsland(CommandSender sender, Player player) {
+        if (getOffset() == 0 || getWorld() == null) {
+            sender.sendMessage(ChatColor.YELLOW + "First you need to set the reference coordinates '/is set'.");
+            return true;
+        }
+        if (player == null) return false;
+
+        UUID uuid = player.getUniqueId();
+        int X_pl = 0, Z_pl = 0;
+        int plID = PlayerInfo.getId(uuid);
+        if (plID == -1) {
+            PlayerInfo inf = new PlayerInfo(uuid);
+            plID = PlayerInfo.getFreeId(useEmptyIslands);
+            int result[] = plugin.getIslandCoordinates(plID);
+            X_pl = result[0]; Z_pl = result[1];
+            if (plID != PlayerInfo.size())
+                Island.clear(getWorld(), X_pl, 54, Z_pl, getOffset()/4);
+            Island.place(getWorld(), X_pl, 54, Z_pl);
+            plugin.worldGuard.createRegion(uuid, X_pl, Z_pl, OneBlock.STARTER_ISLAND_SIZE, plID);
+            PlayerInfo.set(plID, inf);
+            if (!superlegacy)
+                inf.createBar(getBarTitle(player, 0));
+        }
+        else {
+            int result[] = plugin.getIslandCoordinates(plID);
+            X_pl = result[0]; Z_pl = result[1] ;
+        }
+
+        if (!plugin.enabled) plugin.runMainTask();
+        if (progress_bar) PlayerInfo.get(plID).bar.setVisible(true);
+        player.teleport(new Location(getWorld(), X_pl + 0.5, 54 + 1.2013, Z_pl + 0.5));
+        if (OBWorldGuard.isEnabled()) plugin.worldGuard.addMember(uuid, plID);
+        return true;
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
     	if (!cmd.getName().equalsIgnoreCase("island")) return false;
         if (!requirePermission(sender, "oneblock.join")) return true;
-        if (args.length == 0) args = new String[] {"j"};
-        
+
         Player player = sender instanceof Player ? (Player) sender : null;
+        // /is is the main player entry point:
+        // - no island -> create it and teleport the player
+        // - existing island -> open the island menu
+        if (args.length == 0) {
+            if (player == null) return false;
+
+            if (PlayerInfo.getId(player.getUniqueId()) == -1) {
+                return joinIsland(sender, player);
+            }
+
+            GUI.openGUI(player);
+            return true;
+        }
         
         String parametr = args[0].toLowerCase();
         switch (parametr) 
         {
 	        case ("join"):{
-	            if (getOffset() == 0 || getWorld() == null) {
-	            	sender.sendMessage(ChatColor.YELLOW + "First you need to set the reference coordinates '/is set'.");
-	            	return true;
-	            }
-	            if (player == null) return false;
-	            UUID uuid = player.getUniqueId();
-	            int X_pl = 0, Z_pl = 0;
-	            int plID = PlayerInfo.getId(uuid);
-	            if (plID == -1) {
-	            	PlayerInfo inf = new PlayerInfo(uuid);
-	            	plID = PlayerInfo.getFreeId(useEmptyIslands);
-	            	int result[] = plugin.getIslandCoordinates(plID);
-	            	X_pl = result[0]; Z_pl = result[1];
-	            	if (plID != PlayerInfo.size())
-	            		Island.clear(getWorld(), X_pl, getY(), Z_pl, getOffset()/4);
-	                Island.place(getWorld(), X_pl, getY(), Z_pl);
-	                plugin.worldGuard.createRegion(uuid, X_pl, Z_pl, getOffset(), plID);
-					PlayerInfo.set(plID, inf);
-					if (!superlegacy)
-						inf.createBar(getBarTitle(player, 0));
-	            } 
-	            else {
-	            	int result[] = plugin.getIslandCoordinates(plID);
-	                X_pl = result[0]; Z_pl = result[1];
-	            }
-	            if (!plugin.enabled) plugin.runMainTask();
-	            if (progress_bar) PlayerInfo.get(plID).bar.setVisible(true);
-	            player.teleport(new Location(getWorld(), X_pl + 0.5, getY() + 1.2013, Z_pl + 0.5));
-	            if (OBWorldGuard.isEnabled()) plugin.worldGuard.addMember(uuid, plID);
-	            return true;
-	        }
+	            return joinIsland(sender, player);
+        }
+
 	        case ("leave"):{
 	        	if (player == null) return false;
 	            PlayerInfo.removeBarFor(player);
@@ -233,21 +252,6 @@ public class CommandHandler implements CommandExecutor {
 	        case ("help"):{
 	        	sender.sendMessage(sender.hasPermission("oneblock.set") ? Messages.help_adm:Messages.help);
 	        	return true;
-	        }
-	        case ("gui"):{
-	        	if (args.length == 1) {
-	        		GUI.openGUI(player);
-	        		return true;
-	        	}
-	        	// Fall-through contract for the next three cases ("gui", "idreset", default):
-	        	//   single-arg -> user-facing behaviour (open GUI / self-idreset), returns.
-	        	//   multi-arg  -> intentional fall-through to the admin `default` block,
-	        	//                 which performs the oneblock.set permission check and
-	        	//                 re-dispatches to the admin switch's matching case.
-	        	// DO NOT insert new cases in between without preserving the chain, or
-	        	// `/ob gui true|false` and `/ob idreset <name>` will silently stop
-	        	// reaching the admin handler.
-	        	// fall through: `/ob gui true|false` reaches the admin bool-toggle via default.
 	        }
 	        case ("idreset"):{
 	        	if (args.length == 1) {

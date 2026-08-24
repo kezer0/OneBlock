@@ -108,7 +108,7 @@ public final class IslandCoordinateCalculator {
 	}
 
 	public static int[] getById(int id, int x, int z, int diameter, boolean CircleMode) {
-		if (!CircleMode) return new int[] {id * diameter + x, z, id};
+		if (!CircleMode) return new int[] {(id * diameter + x) * 10, z * 10, id};
 
 		return getByIdHybrid(id, x, z, diameter);
 	}
@@ -126,8 +126,8 @@ public final class IslandCoordinateCalculator {
 			else
 				X++;
 		}
-		X = X * diameter + x;
-		Z = Z * diameter + z;
+		X = (X * diameter + x) * 10;
+		Z = (Z * diameter + z) * 10;
 		return new int[] {X, Z, id};
 	}
 
@@ -165,8 +165,8 @@ public final class IslandCoordinateCalculator {
 	            Z = ring;
 	    }
 
-	    X = X * diameter + x;
-	    Z = Z * diameter + z;
+	    X = (X * diameter + x) * 10;
+	    Z = (Z * diameter + z) * 10;
 	    return new int[] {X, Z, id};
 	}
 }

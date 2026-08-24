@@ -53,6 +53,16 @@ public class OneBlock extends JavaPlugin {
     private static final int BORDER_WARNING_DISTANCE = 2;
     private static final double BORDER_DAMAGE_AMOUNT = .2;
     private static final double BORDER_DAMAGE_BUFFER = 1;
+
+    /**
+     * Current OneBlock island layout. Starter area is 50x50; the planned
+     * maximum is 160x160 with 200 blocks of space between fully expanded
+     * islands, giving 360 blocks center-to-center.
+     */
+    public static final int STARTER_ISLAND_SIZE = 50;
+    public static final int MAX_ISLAND_SIZE = 160;
+    public static final int ISLAND_GAP = 200;
+    public static final int ISLAND_CENTER_SPACING = MAX_ISLAND_SIZE + ISLAND_GAP;
     
     public static final Random rnd = new Random();
     public static final XMaterial GRASS_BLOCK = XMaterial.GRASS_BLOCK, GRASS = XMaterial.SHORT_GRASS;
@@ -120,7 +130,7 @@ public class OneBlock extends JavaPlugin {
     /** Shorthand for {@code origin().x()}. */
     public static int getX()      { return ORIGIN.get().x(); }
     /** Shorthand for {@code origin().y()}. */
-    public static int getY()      { return ORIGIN.get().y(); }
+    public static int getY()      { return 54; }
     /** Shorthand for {@code origin().z()}. */
     public static int getZ()      { return ORIGIN.get().z(); }
     /** Shorthand for {@code origin().offset()}; {@code 0} means "not configured". */
@@ -282,8 +292,7 @@ public class OneBlock extends JavaPlugin {
 		
 		WorldBorder br = Bukkit.createWorldBorder();
     	br.setCenter(X_pl+.5, Z_pl+.5);
-    	int _off = getOffset();
-    	br.setSize(_off - 1 + (_off & 1));
+    	br.setSize(STARTER_ISLAND_SIZE - 1 + (STARTER_ISLAND_SIZE & 1));
     	br.setWarningDistance(BORDER_WARNING_DISTANCE);
     	br.setDamageAmount(BORDER_DAMAGE_AMOUNT);
     	br.setDamageBuffer(BORDER_DAMAGE_BUFFER);
@@ -307,8 +316,8 @@ public class OneBlock extends JavaPlugin {
     public boolean isWithinIslandBounds(Location loc, int centerX, int centerZ) {
         int deltaX = loc.getBlockX() - centerX;
         int deltaZ = loc.getBlockZ() - centerZ;
-        int radius = Math.abs(getOffset() >> 1) + 1;
-        
+        int radius = (STARTER_ISLAND_SIZE - 1) >> 1;
+
         return Math.abs(deltaX) <= radius && Math.abs(deltaZ) <= radius;
     }
     

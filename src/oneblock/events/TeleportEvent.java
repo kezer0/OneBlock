@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
@@ -50,4 +51,10 @@ public class TeleportEvent implements Listener {
     	if (e.getFrom().equals(getWorld()))
     		PlayerInfo.removeBarFor(e.getPlayer());
     }
+	@EventHandler
+	public void PlayerFellOfTheWorld(PlayerMoveEvent e){
+		if(e.getFrom().getBlockY() > -64) return;
+		Player p = e.getPlayer();
+		p.teleport(plugin.getLeave());
+	}
 }

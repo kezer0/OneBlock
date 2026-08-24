@@ -11,6 +11,9 @@ commands:
     description: OneBlock main command.
     aliases: is
     usage: Are you using the command incorrectly?
+  spawn:
+    description: Teleports to spawn.
+    usage: Use /spawn to teleport to spawn
 
 permissions:
     oneblock.set:
