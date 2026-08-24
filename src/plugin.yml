@@ -30,7 +30,7 @@ permissions:
         default: true
     oneblock.visit:
         description: Allows visiting other players islands
-        default: false
+        default: true
     oneblock.ignoreBarrier:
         description: Allows bypassing island barriers and restrictions
         default: op
