@@ -5,7 +5,6 @@ import static oneblock.OneBlock.*;
 import java.util.Map;
 import java.util.UUID;
 
-import net.momirealms.craftengine.core.plugin.command.sender.Sender;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -29,6 +28,9 @@ import oneblock.invitation.Guest;
 import oneblock.invitation.Invitation;
 import oneblock.utils.Utils;
 import oneblock.worldguard.OBWorldGuard;
+import oneblock.network.IslandDataService;
+import oneblock.network.IslandPermission;
+import oneblock.network.PlayerDataManager;
 
 public class CommandHandler implements CommandExecutor {
 	
@@ -49,7 +51,7 @@ public class CommandHandler implements CommandExecutor {
 		return true;
 	}
 	
-	private static boolean requirePermission(CommandSender sender, String permission) {
+	private boolean requirePermission(CommandSender sender, String permission) {
 	    if (!sender.hasPermission(permission)) {
 	        sender.sendMessage(ChatColor.RED + "You don't have permission [" + permission + "].");
 	        return false;
@@ -77,6 +79,7 @@ public class CommandHandler implements CommandExecutor {
             Island.place(getWorld(), X_pl, getY(), Z_pl);
             plugin.worldGuard.createRegion(uuid, X_pl, Z_pl, OneBlock.STARTER_ISLAND_SIZE, plID);
             PlayerInfo.set(plID, inf);
+            IslandDataService.ensureIslandCache(plID, uuid, inf.allowVisit);
             if (!superlegacy)
                 inf.createBar(getBarTitle(player, 0));
         }
@@ -142,45 +145,56 @@ public class CommandHandler implements CommandExecutor {
 	            return true;
 	        }
 	        case ("visit"):{
-	        	if (!requirePermission(sender, "oneblock.visit")) return true;
-	        	if (player == null) return false;
-	            if (args.length < 2) {
-	        		GUI.visitGUI(player, Bukkit.getOfflinePlayers());
-	        		return true;
-	        	}
-	            OfflinePlayer inv = Bukkit.getOfflinePlayer(args[1]);
-	        	if (inv == null) return true;
-	    		if (inv.getUniqueId().equals(player.getUniqueId())) {
-	    			player.performCommand("is join");
-	    			return true;
-	    		}
-	    		UUID uuid = inv.getUniqueId();
-	    		final int plID = PlayerInfo.getId(uuid);
-	    		if (plID == -1) {
-	    			sender.sendMessage(Messages.invite_no_island);
-	    			return true;
-	    		}
-	    		PlayerInfo pinf = PlayerInfo.get(uuid);
-	    		if (!pinf.allowVisit || (inv instanceof Player && !((Player) inv).hasPermission("oneblock.allow_visit"))) {
-	    			pinf.allowVisit = false;
-	    			sender.sendMessage(Messages.not_allow_visit);
-	    			return true;
-	    		}
-	        	final int result[] = plugin.getIslandCoordinates(plID);
-	            final int X_pl = result[0], Z_pl = result[1];
-	    		
-	            if (protection) Guest.list.add(new Guest(uuid, player.getUniqueId()));
-	            player.teleport(new Location(getWorld(), X_pl + 0.5, getY() + 1.2013, Z_pl + 0.5));
-	    		PlayerInfo.removeBarFor(player);
-	            return true;
-	        }
-	        case ("allow_visit"):{
-				if (!requirePermission(sender, "oneblock.allow_visit")) return false;
-	        	allowVisiting(player);
-	        	return true;
-	        }
-	        case ("invite"):{
-	        	if (!requirePermission(sender, "Oneblock.invite")) return true;
+            if (!requirePermission(sender, "oneblock.visit")) return true;
+            if (player == null) return false;
+            if (args.length < 2) {
+                GUI.visitGUI(player, Bukkit.getOfflinePlayers());
+                return true;
+            }
+            OfflinePlayer inv = Bukkit.getOfflinePlayer(args[1]);
+            if (inv == null) return true;
+            if (inv.getUniqueId().equals(player.getUniqueId())) {
+                return joinIsland(sender, player);
+            }
+            int plID = PlayerInfo.getId(inv.getUniqueId());
+            if (plID == -1) {
+                sender.sendMessage(Messages.invite_no_island);
+                return true;
+            }
+            if (!IslandDataService.canVisitIsland(plID)) {
+                sender.sendMessage(Messages.not_allow_visit);
+                return true;
+            }
+            int[] result = plugin.getIslandCoordinates(plID);
+            if (protection) Guest.list.add(new Guest(inv.getUniqueId(), player.getUniqueId()));
+            player.teleport(new Location(getWorld(), result[0] + 0.5, getY() + 1.2013, result[1] + 0.5));
+            PlayerInfo.removeBarFor(player);
+            return true;
+        }
+        case ("allow_visit"):{
+            if (player == null) return false;
+            UUID uuid = player.getUniqueId();
+            int islandId = PlayerInfo.getId(uuid);
+            if (islandId == -1 || !PlayerInfo.existsAsOwner(uuid) ||
+                    !IslandDataService.hasPermission(uuid, islandId, IslandPermission.SETTINGS)) return true;
+            boolean value = !IslandDataService.canVisitIsland(islandId);
+            IslandDataService.setAllowVisits(islandId, value);
+            player.sendMessage(value ? Messages.allowed_visit : Messages.forbidden_visit);
+            return true;
+        }
+        case ("visitor_interact"):{
+            if (player == null) return false;
+            UUID uuid = player.getUniqueId();
+            int islandId = PlayerInfo.getId(uuid);
+            if (islandId == -1 || !PlayerInfo.existsAsOwner(uuid) ||
+                    !IslandDataService.hasPermission(uuid, islandId, IslandPermission.SETTINGS)) return true;
+            IslandDataService.setVisitorInteract(islandId, !IslandDataService.visitorInteract(islandId));
+            player.sendMessage(ChatColor.GREEN + "Visitor interactions are now " +
+                    (IslandDataService.visitorInteract(islandId) ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GREEN + ".");
+            return true;
+        }
+        case ("invite"):{
+	        	if (!requirePermission(sender, "oneblock.invite")) return true;
 	        	if (args.length < 2) {
 	        		sender.sendMessage(Messages.invite_usage);
 	        		return true;
@@ -193,8 +207,9 @@ public class CommandHandler implements CommandExecutor {
 	    			return true;
 	    		}
 	    		UUID uuid = player.getUniqueId();
-	    		if (PlayerInfo.getId(uuid) == -1) {
-	    			sender.sendMessage(Messages.invite_no_island);
+	    		int islandId = PlayerInfo.getId(uuid);
+	    		if (islandId == -1 || !PlayerInfo.existsAsOwner(uuid) || !IslandDataService.hasPermission(uuid, islandId, IslandPermission.INVITE)) {
+	    			sender.sendMessage(ChatColor.RED + "Only the island owner can invite members.");
 	    			return true;
 	    		}
 	    		if (max_players_team != 0) {
@@ -212,47 +227,84 @@ public class CommandHandler implements CommandExecutor {
 	        	return true;
 	        }
 	        case ("kick"):{
-	        	if (!requirePermission(sender, "oneblock.kick")) return true;
-	        	if (args.length < 2) {
-	        		sender.sendMessage(Messages.kick_usage);
-	        		return true;
-	        	}
-	        	OfflinePlayer member = Bukkit.getOfflinePlayer(args[1]);
-	        	if (member == null) return true;
-	        	if (player == null) return false;
-	        	if (member == player) {
-	        		sender.sendMessage(Messages.kick_yourself);
-	        		return true;
-	        	}
-	        	UUID owner_uuid = player.getUniqueId(), member_uuid = member.getUniqueId();
-	        	if (!PlayerInfo.existsAsOwner(owner_uuid))
-	        		return true;
-	        	int ownerID = PlayerInfo.getId(owner_uuid);
-	        	PlayerInfo info = PlayerInfo.get(ownerID);
-	        	if (info.uuids.contains(member_uuid)) {
-	        		info.removeInvite(member_uuid);
-	        		if (OBWorldGuard.isEnabled())
-	        			plugin.worldGuard.removeMember(member_uuid, ownerID);
-	        	}
-	        	if (!(member instanceof Player)) return true;
-	        	Player member_ex = (Player) member;
-	        	int memberID = plugin.findNearestRegionId(member_ex.getLocation());
-	        	if (memberID == ownerID) {
-	        		if (!member_ex.hasPermission("oneblock.set"))
-	        			member_ex.performCommand("is join");
-	        		info.removeBar(member_ex);
-	        		sender.sendMessage(member.getName() + Messages.kicked);
-	        	}
-	        	return true;
-	        }
-	        case ("accept"):{
-	       	 	if (Invitation.check(player))
-	       	 		sender.sendMessage(Messages.accept_success);
-	       	 	else
-	       	 		sender.sendMessage(Messages.accept_none);
-	       		return true;
-	        }
-	        case ("top"):{
+            if (!requirePermission(sender, "oneblock.kick")) return true;
+            if (args.length < 2) {
+                sender.sendMessage(Messages.kick_usage);
+                return true;
+            }
+            OfflinePlayer member = Bukkit.getOfflinePlayer(args[1]);
+            if (member == null || player == null) return true;
+            if (member.getUniqueId().equals(player.getUniqueId())) {
+                sender.sendMessage(Messages.kick_yourself);
+                return true;
+            }
+            UUID ownerUuid = player.getUniqueId();
+            int ownerId = PlayerInfo.getId(ownerUuid);
+            if (!PlayerInfo.existsAsOwner(ownerUuid) || !IslandDataService.hasPermission(ownerUuid, ownerId, IslandPermission.KICK)) return true;
+            PlayerInfo info = PlayerInfo.get(ownerId);
+            UUID memberUuid = member.getUniqueId();
+            if (info.uuids.contains(memberUuid)) {
+                info.removeInvite(memberUuid);
+                IslandDataService.removeMember(ownerId, memberUuid);
+                if (OBWorldGuard.isEnabled()) plugin.worldGuard.removeMember(memberUuid, ownerId);
+            }
+            if (member instanceof Player) {
+                Player memberPlayer = (Player) member;
+                int memberId = plugin.findNearestRegionId(memberPlayer.getLocation());
+                if (memberId == ownerId) {
+                    if (!memberPlayer.hasPermission("oneblock.set")) memberPlayer.performCommand("is join");
+                    info.removeBar(memberPlayer);
+                    sender.sendMessage(member.getName() + Messages.kicked);
+                }
+            }
+            return true;
+        }
+        case ("accept"):{
+            if (player == null) return false;
+            if (Invitation.check(player)) {
+                int islandId = PlayerInfo.getId(player.getUniqueId());
+                if (islandId >= 0) IslandDataService.ensureMember(islandId, player.getUniqueId());
+                sender.sendMessage(Messages.accept_success);
+            } else {
+                sender.sendMessage(Messages.accept_none);
+            }
+            return true;
+        }
+        case ("upgrade"):{
+            if (player == null) return false;
+            if (!PlayerInfo.existsAsOwner(player.getUniqueId())) {
+                sender.sendMessage(ChatColor.RED + "Only the island owner can upgrade the island.");
+                return true;
+            }
+            IslandDataService.upgrade(player);
+            return true;
+        }
+        case ("transfer"):{
+            if (player == null) return false;
+            if (!PlayerInfo.existsAsOwner(player.getUniqueId()) || !IslandDataService.hasPermission(player.getUniqueId(), PlayerInfo.getId(player.getUniqueId()), IslandPermission.TRANSFER_OWNERSHIP)) {
+                sender.sendMessage(ChatColor.RED + "Only the island owner can transfer ownership.");
+                return true;
+            }
+            if (args.length < 2) {
+                sender.sendMessage(ChatColor.RED + "Usage: /is transfer <player>");
+                return true;
+            }
+            OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
+            int islandId = PlayerInfo.getId(player.getUniqueId());
+            PlayerInfo info = PlayerInfo.get(islandId);
+            if (target == null || !info.uuids.contains(target.getUniqueId())) {
+                sender.sendMessage(ChatColor.RED + "That player is not a member of your island.");
+                return true;
+            }
+            if (!IslandDataService.transferOwnership(player, target.getUniqueId())) {
+                sender.sendMessage(ChatColor.RED + "Ownership transfer failed.");
+                return true;
+            }
+            sender.sendMessage(ChatColor.GREEN + "Island ownership transferred to " + target.getName() + ".");
+            if (target.isOnline()) target.getPlayer().sendMessage(ChatColor.GREEN + "You are now the owner of the island.");
+            return true;
+        }
+        case ("top"):{
 	        	GUI.topGUI(player);
 	        	return true;
 	        }
@@ -703,12 +755,4 @@ public class CommandHandler implements CommandExecutor {
 		    }
 	    }
     }
-	public static void allowVisiting(Player player){
-		if (player == null) return;
-		UUID uuid = player.getUniqueId();
-		if (PlayerInfo.getId(uuid) == -1) return;
-		PlayerInfo inf = PlayerInfo.get(uuid);
-		inf.allowVisit = !inf.allowVisit;
-		player.sendMessage(inf.allowVisit ? Messages.allowed_visit : Messages.forbidden_visit);
-	}
 }

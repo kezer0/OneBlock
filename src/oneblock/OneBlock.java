@@ -1,15 +1,14 @@
 // Copyright 2026 MrMarL. The MIT License (MIT).
 package oneblock;
 
+import oneblock.events.*;
+import oneblock.network.IslandDataService;
+import oneblock.network.NetworkDatabase;
+import oneblock.network.PlayerDataManager;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.cryptomorin.xseries.XMaterial;
 
-import oneblock.events.BlockEvent;
-import oneblock.events.ItemsAdderEvent;
-import oneblock.events.RespawnJoinEvent;
-import oneblock.events.TeleportEvent;
-import oneblock.events.TeleportNetherEvent;
 import oneblock.events.extended.BlockEventFixed;
 import oneblock.gui.GUI;
 import oneblock.gui.GUIListener;
@@ -175,6 +174,9 @@ public class OneBlock extends JavaPlugin {
         
         configManager.Configfile();
         Datafile();
+        NetworkDatabase.initialize(this);
+        PlayerDataManager.initializeConfig(this);
+        IslandDataService.initialize(this);
         configManager.loadAdditionalConfigFiles();
         
         setupMetrics(metrics);
@@ -184,6 +186,7 @@ public class OneBlock extends JavaPlugin {
         BlockEvent blockEvent = needDropFix? new BlockEventFixed() : new BlockEvent();
         pluginManager.registerEvents(blockEvent, this);
         pluginManager.registerEvents(new GUIListener(), this);
+        pluginManager.registerEvents(new NetworkDataEvent(), this);
         pluginManager.registerEvents(new TeleportNetherEvent(), this);
         if (placetype == Place.Type.ItemsAdder) pluginManager.registerEvents(new ItemsAdderEvent(), this);
         getCommand("island").setExecutor(new CommandHandler());
@@ -221,6 +224,7 @@ public class OneBlock extends JavaPlugin {
 		if (getOffset() == 0) return;
 		Bukkit.getScheduler().runTaskTimerAsynchronously(this, new PlayerCacheRefreshTask(this), 0, 120);
 		Bukkit.getScheduler().runTaskTimerAsynchronously(this, new PlayerDataSaveTask(this), 200, 6000);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, PlayerDataManager::saveAll, 6000, 6000);
 		if (!superlegacy) Bukkit.getScheduler().runTaskTimerAsynchronously(this, new IslandParticleTask(this), 40, 40);
 		Bukkit.getScheduler().runTaskTimer(this, new IslandBlockGenTask(this), 40, 80);
 		enabled = true;
@@ -289,10 +293,11 @@ public class OneBlock extends JavaPlugin {
     	int plID = findNearestRegionId(loc);
 		int result[] = getIslandCoordinates(plID);
         int X_pl = result[0], Z_pl = result[1];
+        int buildingSize = IslandDataService.getBuildingSize(plID);
 		
 		WorldBorder br = Bukkit.createWorldBorder();
     	br.setCenter(X_pl+.5, Z_pl+.5);
-    	br.setSize(STARTER_ISLAND_SIZE - 1 + (STARTER_ISLAND_SIZE & 1));
+        br.setSize(buildingSize - 1 + (buildingSize & 1));
     	br.setWarningDistance(BORDER_WARNING_DISTANCE);
     	br.setDamageAmount(BORDER_DAMAGE_AMOUNT);
     	br.setDamageBuffer(BORDER_DAMAGE_BUFFER);
@@ -314,16 +319,21 @@ public class OneBlock extends JavaPlugin {
     }
     
     public boolean isWithinIslandBounds(Location loc, int centerX, int centerZ) {
+        return isWithinIslandBounds(loc, centerX, centerZ, STARTER_ISLAND_SIZE);
+    }
+
+    public boolean isWithinIslandBounds(Location loc, int centerX, int centerZ, int islandSize) {
         int deltaX = loc.getBlockX() - centerX;
         int deltaZ = loc.getBlockZ() - centerZ;
-        int radius = (STARTER_ISLAND_SIZE - 1) >> 1;
-
+        int radius = (islandSize - 1) >> 1;
         return Math.abs(deltaX) <= radius && Math.abs(deltaZ) <= radius;
     }
     
     @Override
     public void onDisable() {
     	saveData();
+        PlayerDataManager.saveAll();
+        NetworkDatabase.close();
     	DatabaseManager.close();
     }
     
