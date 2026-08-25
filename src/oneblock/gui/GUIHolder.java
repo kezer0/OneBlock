@@ -13,7 +13,8 @@ public class GUIHolder implements InventoryHolder {
         SETTINGS,
         MEMBERS,
         MEMBER,
-        PLAYER_SELECT
+        PLAYER_SELECT,
+        UPGRADES
     }
 
     private final GUIType guiType;

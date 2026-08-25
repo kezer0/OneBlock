@@ -1,0 +1,14 @@
+# PostgreSQL used only for systems added by the network/plugin itself.
+# The OneBlock fork's existing island persistence remains separate.
+enabled: true
+host: localhost
+port: 5432
+database: oneblock
+username: postgres
+password: superpassword
+starting-balance: 1000.00
+pool:
+  maximum: 8
+  minimum-idle: 2
+  connection-timeout-ms: 10000
+  max-lifetime-ms: 1800000

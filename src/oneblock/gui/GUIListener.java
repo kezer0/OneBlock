@@ -3,7 +3,6 @@ package oneblock.gui;
 import java.util.ArrayList;
 import java.util.UUID;
 
-import oneblock.CommandHandler;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,6 +16,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import oneblock.ChestItems;
 import oneblock.PlayerInfo;
+import oneblock.network.IslandDataService;
+import oneblock.network.IslandPermission;
 
 public class GUIListener implements Listener {
     @EventHandler
@@ -41,14 +42,14 @@ public class GUIListener implements Listener {
             case MAIN_MENU:
                 switch (e.getRawSlot()) {
                     case 13: GUI.phasesGUI(p); return;
-                    case 19: p.closeInventory(); p.performCommand("skill"); return;
                     case 20: GUI.phasesGUI(p); return;
                     case 21: p.performCommand("is join"); p.closeInventory(); return;
                     case 22: GUI.membersGUI(p); return;
                     case 23: GUI.settingsGUI(p); return;
                     case 24: p.closeInventory(); p.performCommand("is visit"); return;
                     case 25: GUI.topGUI(p); return;
-                    case 40: p.closeInventory(); p.performCommand("is spawn"); return;
+                    case 30: GUI.upgradesGUI(p); return;
+                    case 31: p.closeInventory(); p.performCommand("is spawn"); return;
                     case 49: p.closeInventory(); return;
                     default: return;
                 }
@@ -56,9 +57,8 @@ public class GUIListener implements Listener {
                 if (e.getRawSlot() == 40) GUI.openGUI(p);
                 return;
             case SETTINGS:
-                if (e.getRawSlot() == 13) {
-                    CommandHandler.allowVisiting(p);
-                }
+                if (e.getRawSlot() == 11) { p.closeInventory(); p.performCommand("is allow_visit"); GUI.settingsGUI(p); }
+                else if (e.getRawSlot() == 15) { p.closeInventory(); p.performCommand("is visitor_interact"); GUI.settingsGUI(p); }
                 else if (e.getRawSlot() == 18) GUI.openGUI(p);
                 else if (e.getRawSlot() == 22) p.closeInventory();
                 return;
@@ -87,7 +87,7 @@ public class GUIListener implements Listener {
                     p.performCommand("is kick " + nameFromUuid(member));
                 } else if (e.getRawSlot() == 15) {
                     p.closeInventory();
-                    p.performCommand("is join");
+                    p.performCommand("is transfer " + nameFromUuid(member));
                 }
                 return;
             case PLAYER_SELECT:
@@ -99,6 +99,13 @@ public class GUIListener implements Listener {
                     p.performCommand("is invite " + target);
                     GUI.membersGUI(p);
                 }
+                return;
+            case UPGRADES:
+                if (e.getRawSlot() == 13) {
+                    p.closeInventory();
+                    p.performCommand("is upgrade");
+                } else if (e.getRawSlot() == 18) GUI.openGUI(p);
+                else if (e.getRawSlot() == 22) p.closeInventory();
                 return;
             case INVITE:
                 p.closeInventory();

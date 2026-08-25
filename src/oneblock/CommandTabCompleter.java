@@ -14,7 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.loot.LootTables;
 
 public final class CommandTabCompleter implements TabCompleter {
-    private final List<String> BASE_COMMANDS = Arrays.asList("j","join","leave","spawn","invite","accept","kick","help","gui","top");
+    private final List<String> BASE_COMMANDS = Arrays.asList("j","join","leave","spawn","invite","accept","kick","upgrade","transfer","help","gui","top");
     private final List<String> VISIT_COMMANDS = Arrays.asList("v","visit");
     private final List<String> ADMIN_COMMANDS = Arrays.asList("set","setleave","progress_bar","setlevel","clear","circlemode","lvl_mult","max_players_team", "chest", "saveplayerinventory",
             "reload","islands","rebirth_on_the_island","protection","worldguard","border","listlvl","autoJoin","droptossup","physics","particle","allow_nether","useEmptyIslands");
@@ -28,10 +28,11 @@ public final class CommandTabCompleter implements TabCompleter {
             if (sender.hasPermission("oneblock.idreset")) commands.add("IDreset");
             if (sender.hasPermission("oneblock.visit")) commands.addAll(VISIT_COMMANDS);
             if (sender.hasPermission("oneblock.allow_visit")) commands.add("allow_visit");
+            commands.add("visitor_interact");
             if (isAdmin) commands.addAll(ADMIN_COMMANDS);
         } else if (args.length == 2) {
             String arg = args[0].toLowerCase();
-            if ("invite".equals(arg) || "kick".equals(arg) || "visit".equals(arg) || "v".equals(arg)) {
+            if ("invite".equals(arg) || "kick".equals(arg) || "visit".equals(arg) || "v".equals(arg) || "transfer".equals(arg)) {
                 addOnlinePlayers(commands);
             } else if (isAdmin) {
                 switch (arg) {

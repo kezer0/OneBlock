@@ -140,7 +140,22 @@ public final class PlayerInfo {
 			UUID_INDEX.remove(inviteeUuid);
 		}
 	}
-
+	/**
+	 * Transfers the fork-level island owner while keeping the reverse UUID index
+	 * consistent. The new owner must already be an island member.
+	 */
+	public static boolean transferOwnership(int id, UUID newOwner) {
+		if (id < 0 || id >= list.size() || newOwner == null) return false;
+		PlayerInfo island = list.get(id);
+		if (island == null || island.uuid == null || island.uuid.equals(newOwner) || !island.uuids.contains(newOwner)) return false;
+		UUID oldOwner = island.uuid;
+		island.uuids.remove(newOwner);
+		island.uuids.add(oldOwner);
+		UUID_INDEX.remove(oldOwner);
+		UUID_INDEX.put(newOwner, id);
+		island.uuid = newOwner;
+		return true;
+	}
 	/**
 	 * The number of blocks the player has to break on the current level
 	 * before {@link #lvlup()} fires. Equivalent to {@code Level.get(lvl).length}

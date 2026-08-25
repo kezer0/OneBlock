@@ -1,0 +1,14 @@
+# Building-area upgrades. 50 is the starter size and 160 is the current maximum.
+building-size:
+  sizes:
+    - 50
+    - 80
+    - 110
+    - 140
+    - 160
+  prices:
+    - "0.00"
+    - "1000.00"
+    - "5000.00"
+    - "15000.00"
+    - "50000.00"

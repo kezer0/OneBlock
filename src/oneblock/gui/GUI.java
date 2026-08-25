@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import oneblock.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -21,7 +20,15 @@ import org.bukkit.inventory.meta.SkullMeta;
 
 import com.cryptomorin.xseries.XMaterial;
 
+import oneblock.ChestItems;
+import oneblock.Level;
+import oneblock.Messages;
+import oneblock.OneBlock;
+import oneblock.PlayerInfo;
 import oneblock.utils.Utils;
+import oneblock.network.IslandDataService;
+import oneblock.network.IslandPermission;
+import oneblock.network.PlayerDataManager;
 
 public class GUI {
     public static boolean enabled = true;
@@ -55,10 +62,7 @@ public class GUI {
             profile.setItemMeta(profileMeta);
         }
         inv.setItem(13, profile);
-        inv.setItem(19, item(XMaterial.DIAMOND_SWORD,
-                ChatColor.GREEN + "Skills & Abilities",
-                ChatColor.GRAY + "Your skill and abilities.",
-                "", ChatColor.YELLOW + "Click to open"));
+
         inv.setItem(20, item(XMaterial.EXPERIENCE_BOTTLE,
                 ChatColor.GREEN + "Phases",
                 ChatColor.GRAY + "View every OneBlock phase and progress.",
@@ -83,6 +87,11 @@ public class GUI {
                 ChatColor.GREEN + "Top Islands",
                 ChatColor.GRAY + "View the island leaderboard.",
                 "", ChatColor.YELLOW + "Click to open"));
+        inv.setItem(30, item(XMaterial.GOLD_INGOT,
+                ChatColor.GREEN + "Island Upgrades",
+                ChatColor.GRAY + "Expand your building area.",
+                ChatColor.GRAY + "Current: " + ChatColor.WHITE + IslandDataService.getBuildingSize(PlayerInfo.getId(p.getUniqueId())) + "x" + IslandDataService.getBuildingSize(PlayerInfo.getId(p.getUniqueId())),
+                "", ChatColor.YELLOW + "Click to manage"));
 
         ItemStack spawn = getBase64Head("eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTU3N2M0ZGUxZjUxYTcwNzIyMDIzZTg1NmI1NDNjZDU3MGYxZDBlZTZiOWQxNjdiNTkwMjhjZTFiYzkyZTQ1OCJ9fX0=");
         ItemMeta spawnMeta = spawn.getItemMeta();
@@ -96,15 +105,10 @@ public class GUI {
             ));
             spawn.setItemMeta(spawnMeta);
         }
-        inv.setItem(40, spawn);
+        inv.setItem(31, spawn);
 
         inv.setItem(49, item(XMaterial.BARRIER, ChatColor.RED + "Close", ChatColor.GRAY + "Close this menu."));
         p.openInventory(inv);
-    }
-
-    public static void skillGUI(Player p){
-        if (!enabled || p == null) return;
-        p.performCommand("skill");
     }
 
     public static void phasesGUI(Player p) {
@@ -137,19 +141,62 @@ public class GUI {
         PlayerInfo inf = islandInfo(p);
         if (inf == null) return;
         boolean owner = p.getUniqueId().equals(inf.uuid);
+        int islandId = PlayerInfo.getId(p.getUniqueId());
 
         Inventory inv = Bukkit.createInventory(new GUIHolder(GUIHolder.GUIType.SETTINGS), 27,
                 ChatColor.DARK_GREEN + "Island Settings");
         fillBorder27(inv);
-        String visitorState = inf.allowVisit ? ChatColor.GREEN + "PUBLIC" : ChatColor.RED + "PRIVATE";
-        inv.setItem(13, item(inf.allowVisit ? XMaterial.EMERALD : XMaterial.REDSTONE,
+        String visitorState = IslandDataService.canVisitIsland(islandId) ? ChatColor.GREEN + "PUBLIC" : ChatColor.RED + "PRIVATE";
+        boolean visitorInteract = IslandDataService.visitorInteract(islandId);
+        inv.setItem(11, item(IslandDataService.canVisitIsland(islandId) ? XMaterial.EMERALD : XMaterial.REDSTONE,
                 ChatColor.GREEN + "Visitor Access",
                 ChatColor.GRAY + "Current: " + visitorState,
                 ChatColor.GRAY + "Allow other players to visit your island.",
                 "",
-                owner && p.hasPermission("oneblock.allow_visit")
+                owner && IslandDataService.hasPermission(p.getUniqueId(), islandId, IslandPermission.SETTINGS)
                         ? ChatColor.YELLOW + "Click to toggle"
                         : ChatColor.RED + "Owner permission required"));
+        inv.setItem(15, item(visitorInteract ? XMaterial.LEVER : XMaterial.REDSTONE_TORCH,
+                ChatColor.GREEN + "Visitor Interactions",
+                ChatColor.GRAY + "Current: " + (visitorInteract ? ChatColor.GREEN + "ALLOWED" : ChatColor.RED + "BLOCKED"),
+                ChatColor.GRAY + "Allow visitors to use permitted interactables.",
+                "",
+                owner && IslandDataService.hasPermission(p.getUniqueId(), islandId, IslandPermission.SETTINGS)
+                        ? ChatColor.YELLOW + "Click to toggle"
+                        : ChatColor.RED + "Owner permission required"));
+        inv.setItem(18, item(XMaterial.ARROW, ChatColor.YELLOW + "Back", ChatColor.GRAY + "Return to the island menu."));
+        inv.setItem(22, item(XMaterial.BARRIER, ChatColor.RED + "Close", ChatColor.GRAY + "Close this menu."));
+        p.openInventory(inv);
+    }
+
+    public static void upgradesGUI(Player p) {
+        if (!enabled || p == null) return;
+        int islandId = PlayerInfo.getId(p.getUniqueId());
+        if (islandId < 0) return;
+        Inventory inv = Bukkit.createInventory(new GUIHolder(GUIHolder.GUIType.UPGRADES), 27, ChatColor.DARK_GREEN + "Island Upgrades");
+        fillBorder27(inv);
+        int current = IslandDataService.getBuildingSize(islandId);
+        int next = IslandDataService.getNextBuildingSize(islandId);
+        java.math.BigDecimal price = IslandDataService.getNextUpgradePrice(islandId);
+        boolean canBuy = IslandDataService.canUpgrade(islandId) && p.getUniqueId().equals(PlayerInfo.get(islandId).uuid);
+        if (price == null) {
+            inv.setItem(13, item(XMaterial.NETHER_STAR, ChatColor.GOLD + "Maximum Size",
+                    ChatColor.GRAY + "Your island is already at the",
+                    ChatColor.GRAY + "maximum building size.",
+                    "", ChatColor.GREEN + "" + current + "x" + current));
+        } else {
+            inv.setItem(13, item(canBuy ? XMaterial.EMERALD_BLOCK : XMaterial.REDSTONE_BLOCK,
+                    ChatColor.GREEN + "Expand Island",
+                    ChatColor.GRAY + "Current: " + ChatColor.WHITE + current + "x" + current,
+                    ChatColor.GRAY + "Next: " + ChatColor.WHITE + next + "x" + next,
+                    ChatColor.GRAY + "Price: " + ChatColor.GOLD + price.toPlainString(),
+                    "",
+                    canBuy ? ChatColor.YELLOW + "Click to purchase" : ChatColor.RED + "Owner only"));
+        }
+        inv.setItem(11, item(XMaterial.GOLD_BLOCK, ChatColor.GOLD + "Current Area",
+                ChatColor.GRAY + "" + current + "x" + current + " building area"));
+        inv.setItem(15, item(XMaterial.DIAMOND, ChatColor.AQUA + "Maximum",
+                ChatColor.GRAY + "" + OneBlock.MAX_ISLAND_SIZE + "x" + OneBlock.MAX_ISLAND_SIZE + " maximum"));
         inv.setItem(18, item(XMaterial.ARROW, ChatColor.YELLOW + "Back", ChatColor.GRAY + "Return to the island menu."));
         inv.setItem(22, item(XMaterial.BARRIER, ChatColor.RED + "Close", ChatColor.GRAY + "Close this menu."));
         p.openInventory(inv);
@@ -215,10 +262,10 @@ public class GUI {
             meta.setLore(Arrays.asList(
                     ChatColor.GRAY + "Island Member",
                     "",
-                    ChatColor.GRAY + "Invite permission: " + permissionState(memberUuid, "oneblock.invite"),
-                    ChatColor.GRAY + "Kick permission: " + permissionState(memberUuid, "oneblock.kick"),
+                    ChatColor.GRAY + "Role: " + ChatColor.GREEN + "MEMBER",
+                    ChatColor.GRAY + "Can modify the island and use island features.",
                     "",
-                    ChatColor.DARK_GRAY + "Server permissions control these actions."
+                    ChatColor.DARK_GRAY + "Island roles are stored in PostgreSQL."
             ));
             head.setItemMeta(meta);
         }
@@ -228,8 +275,10 @@ public class GUI {
             inv.setItem(11, item(XMaterial.REDSTONE_BLOCK, ChatColor.RED + "Kick Member",
                     ChatColor.GRAY + "Remove this player from the island."));
         }
-        inv.setItem(15, item(XMaterial.ENDER_PEARL, ChatColor.AQUA + "Visit Island",
-                ChatColor.GRAY + "Travel to your own island while managing members."));
+        if (owner) {
+            inv.setItem(15, item(XMaterial.GOLD_INGOT, ChatColor.GOLD + "Transfer Ownership",
+                    ChatColor.GRAY + "Make this member the island owner."));
+        }
         inv.setItem(18, item(XMaterial.ARROW, ChatColor.YELLOW + "Back", ChatColor.GRAY + "Return to members."));
         inv.setItem(26, item(XMaterial.BARRIER, ChatColor.RED + "Close", ChatColor.GRAY + "Close this menu."));
         p.openInventory(inv);
@@ -290,7 +339,9 @@ public class GUI {
         for (OfflinePlayer pl : offlinePlayers) {
             if (pl == null || pl.getUniqueId().equals(p.getUniqueId())) continue;
             PlayerInfo info = PlayerInfo.get(pl.getUniqueId());
-            if (info == null || info.uuid == null || !info.allowVisit) continue;
+            if (info == null || info.uuid == null) continue;
+            int islandId = PlayerInfo.getId(pl.getUniqueId());
+            if (islandId < 0 || !IslandDataService.canVisitIsland(islandId)) continue;
             matched.add(pl);
         }
         int[] visitSlots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42,43};
