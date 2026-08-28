@@ -1,7 +1,6 @@
 package oneblock.events;
 
-import static oneblock.OneBlock.*;
-
+import oneblock.PlayerInfo;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -13,7 +12,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-import oneblock.PlayerInfo;
+import static oneblock.OneBlock.*;
 
 public class TeleportEvent implements Listener {
     @EventHandler

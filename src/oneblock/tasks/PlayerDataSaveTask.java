@@ -11,8 +11,12 @@ import oneblock.OneBlock;
 public final class PlayerDataSaveTask implements Runnable {
     private final OneBlock plugin;
 
-    public PlayerDataSaveTask(OneBlock plugin) { this.plugin = plugin; }
+    public PlayerDataSaveTask(OneBlock plugin) {
+        this.plugin = plugin;
+    }
 
     @Override
-    public void run() { plugin.saveData(); }
+    public void run() {
+        plugin.saveData();
+    }
 }

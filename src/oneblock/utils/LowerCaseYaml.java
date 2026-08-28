@@ -24,6 +24,7 @@ public class LowerCaseYaml extends YamlConfiguration {
             config.set(lowerKey, processValue(value));
         }
     }
+
     private static Object processValue(Object value) {
         if (value instanceof Map) {
             Map<?, ?> map = (Map<?, ?>) value;

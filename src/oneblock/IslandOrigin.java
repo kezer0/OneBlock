@@ -1,6 +1,7 @@
 package oneblock;
 
 import org.bukkit.World;
+
 import java.util.Objects;
 
 /**
@@ -20,7 +21,9 @@ import java.util.Objects;
  */
 public final class IslandOrigin {
 
-    /** Uninitialized / pre-config sentinel: null world, all ints zero. */
+    /**
+     * Uninitialized / pre-config sentinel: null world, all ints zero.
+     */
     public static final IslandOrigin EMPTY = new IslandOrigin(null, 0, 0, 0, 0);
 
     private final World world;
@@ -69,7 +72,9 @@ public final class IslandOrigin {
         );
     }
 
-    /** Returns a copy with only the offset replaced; world / x / y / z kept. */
+    /**
+     * Returns a copy with only the offset replaced; world / x / y / z kept.
+     */
     public IslandOrigin withOffset(int newOffset) {
         return new IslandOrigin(this.world, this.x, this.y, this.z, newOffset);
     }
@@ -80,10 +85,10 @@ public final class IslandOrigin {
         if (o == null || getClass() != o.getClass()) return false;
         IslandOrigin that = (IslandOrigin) o;
         return x == that.x &&
-               y == that.y &&
-               z == that.z &&
-               offset == that.offset &&
-               Objects.equals(world, that.world);
+                y == that.y &&
+                z == that.z &&
+                offset == that.offset &&
+                Objects.equals(world, that.world);
     }
 
     @Override
@@ -94,11 +99,11 @@ public final class IslandOrigin {
     @Override
     public String toString() {
         return "IslandOrigin{" +
-               "world=" + (world != null ? world.getName() : "null") +
-               ", x=" + x +
-               ", y=" + y +
-               ", z=" + z +
-               ", offset=" + offset +
-               '}';
+                "world=" + (world != null ? world.getName() : "null") +
+                ", x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                ", offset=" + offset +
+                '}';
     }
 }

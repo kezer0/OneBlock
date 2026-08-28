@@ -1,37 +1,36 @@
 package oneblock;
 
-import java.util.ArrayList;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
+
+import java.util.ArrayList;
 
 public final class Level {
     public static Level max = new Level("Level: MAX");
     public static ArrayList<Level> levels = new ArrayList<>();
     public static int multiplier = 5;
-    
-    public static Level get(int i) {
-        if (i < levels.size())
-            return levels.get(i);
-        return max;
-    }
-    
-    public static int size() {
-        return levels.size();
-    }
-    
     public String name;
     public int blocks = 0;  // PoolRegistry blocks bound
     public int mobs = 0;    // PoolRegistry mobs bound
     public BarColor color;
     public BarStyle style;
     public int length = 100;
-    
     public Level(String name) {
         this.name = name;
     }
-    
+
+    public static Level get(int i) {
+        if (i < levels.size())
+            return levels.get(i);
+        return max;
+    }
+
+    public static int size() {
+        return levels.size();
+    }
+
     public int getId() {
-        for (int i = 0; i < size(); i++) 
+        for (int i = 0; i < size(); i++)
             if (get(i) == this)
                 return i;
         return 1;

@@ -1,21 +1,22 @@
 package oneblock.events;
 
-import static oneblock.OneBlock.*;
-
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerPortalEvent;
 
+import static oneblock.OneBlock.allow_nether;
+import static oneblock.OneBlock.getWorld;
+
 public class TeleportNetherEvent implements Listener {
-	@EventHandler
+    @EventHandler
     public void NetherPortal(final PlayerPortalEvent e) {
-    	if (allow_nether) return;
-    	World from = e.getFrom().getWorld();
-    	if (!from.equals(getWorld())) return;
-    	
-    	World to = e.getTo().getWorld();
-        if (to.getEnvironment() == World.Environment.NETHER) 
-        	e.setCancelled(true);
+        if (allow_nether) return;
+        World from = e.getFrom().getWorld();
+        if (!from.equals(getWorld())) return;
+
+        World to = e.getTo().getWorld();
+        if (to.getEnvironment() == World.Environment.NETHER)
+            e.setCancelled(true);
     }
 }

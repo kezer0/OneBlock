@@ -1,15 +1,14 @@
 package oneblock.events;
 
-import static oneblock.OneBlock.*;
-
+import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
+import static oneblock.OneBlock.configManager;
 
 public class ItemsAdderEvent implements Listener {
-	@EventHandler
+    @EventHandler
     public void ItemsAdderLoad(ItemsAdderLoadDataEvent event) {
-		configManager.Blockfile();
+        configManager.Blockfile();
     }
 }

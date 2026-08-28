@@ -1,20 +1,19 @@
 package oneblock.placement;
 
+import com.cryptomorin.xseries.XBlock;
+import com.cryptomorin.xseries.XMaterial;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 
-import com.cryptomorin.xseries.XBlock;
-import com.cryptomorin.xseries.XMaterial;
+public class Place1_8to1_12 extends Place {
 
-public class Place1_8to1_12 extends Place{
+    @Override
+    public boolean setType(Block block, Object material_, boolean physics) {
+        if (material_ instanceof XMaterial)
+            XBlock.setType(block, (XMaterial) material_, physics);
+        else if (material_ instanceof Material)
+            block.setType((Material) material_, physics);
 
-	@Override
-	public boolean setType(Block block, Object material_, boolean physics) {
-		if (material_ instanceof XMaterial)
-			XBlock.setType(block, (XMaterial)material_, physics);
-		else if (material_ instanceof  Material)
-			block.setType((Material)material_, physics);
-
-		return false;
-	}
+        return false;
+    }
 }

@@ -1,19 +1,13 @@
 package oneblock;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+
+import java.io.File;
+import java.util.*;
 
 /**
  * Dual-mode chest registry: supports both legacy item lists and vanilla loot tables.
@@ -25,10 +19,9 @@ import org.bukkit.inventory.ItemStack;
  * a list of items.
  */
 public final class ChestItems {
-    public static File chest;
-
     private static final Map<String, NamespacedKey> aliases = new LinkedHashMap<>();
     private static final Map<String, List<ItemStack>> aliasesLegacy = new LinkedHashMap<>();
+    public static File chest;
 
     public static void load() {
         aliasesLegacy.clear();
@@ -50,7 +43,7 @@ public final class ChestItems {
                         aliases.put(name, key);
                     } else {
                         OneBlock.plugin.getLogger().warning(
-                            "Unknown loot-table key '" + str + "' for chest alias '" + name + "'");
+                                "Unknown loot-table key '" + str + "' for chest alias '" + name + "'");
                     }
                     continue;
                 }
@@ -90,14 +83,18 @@ public final class ChestItems {
 
         // Save loot-table chests
         for (Map.Entry<String, NamespacedKey> e : aliases.entrySet())
-			config.set(e.getKey(), e.getValue().toString());
+            config.set(e.getKey(), e.getValue().toString());
 
-        try { config.save(chest); } catch (Exception e) {
+        try {
+            config.save(chest);
+        } catch (Exception e) {
             OneBlock.plugin.getLogger().warning("Failed to save chests.yml: " + e.getMessage());
         }
     }
 
-    /** Legacy item parsing */
+    /**
+     * Legacy item parsing
+     */
     private static void loadItems(List<ItemStack> arr, List<?> data) {
         if (data == null) return;
         for (Object entry : data) {
@@ -110,7 +107,9 @@ public final class ChestItems {
         }
     }
 
-    /** Returns all chest alias names (both legacy and loot-table). */
+    /**
+     * Returns all chest alias names (both legacy and loot-table).
+     */
     public static Set<String> getChestNames() {
         Set<String> names = new java.util.LinkedHashSet<>();
         names.addAll(aliasesLegacy.keySet());
@@ -118,48 +117,60 @@ public final class ChestItems {
         return Collections.unmodifiableSet(names);
     }
 
-    /** Returns the legacy item list for the given alias, or null if it's a loot-table chest. */
+    /**
+     * Returns the legacy item list for the given alias, or null if it's a loot-table chest.
+     */
     public static List<ItemStack> getItems(String chestType) {
         return aliasesLegacy.get(chestType);
     }
 
-    /** Returns the loot-table key for the given alias, or null if it's a legacy chest. */
+    /**
+     * Returns the loot-table key for the given alias, or null if it's a legacy chest.
+     */
     public static NamespacedKey getNamespacedKey(String chestType) {
         return aliases.get(chestType);
     }
 
     /**
      * Checks whether a chest alias exists (in either legacy or loot-table storage).
+     *
      * @return true if the chest is registered, false otherwise
      */
     public static boolean hasChest(String chestType) {
         return aliases.containsKey(chestType) || aliasesLegacy.containsKey(chestType);
     }
 
-    /** Add or update a legacy item chest. */
+    /**
+     * Add or update a legacy item chest.
+     */
     public static void setItems(String name, List<ItemStack> items) {
         aliases.remove(name);
         aliasesLegacy.put(name, new ArrayList<>(items));
     }
 
-    /** Add or update a loot-table chest. */
+    /**
+     * Add or update a loot-table chest.
+     */
     public static void setLootTable(String name, NamespacedKey key) {
         aliasesLegacy.remove(name);
         aliases.put(name, key);
     }
 
-    /** Remove a chest alias entirely. */
+    /**
+     * Remove a chest alias entirely.
+     */
     public static boolean remove(String name) {
         boolean removed = aliasesLegacy.remove(name) != null;
         removed |= aliases.remove(name) != null;
         return removed;
     }
-    
+
     /**
      * Fill an inventory from a legacy chest by name.
+     *
      * @return true if the chest exists (legacy) and at least one item was added, false otherwise
      */
-    public static boolean fillLegacyChest(Inventory inv, String chestType,  Random rnd) {
+    public static boolean fillLegacyChest(Inventory inv, String chestType, Random rnd) {
         List<ItemStack> items = aliasesLegacy.get(chestType);
         if (items == null || items.isEmpty()) return false;
         return fillLegacyChest(inv, items, rnd);
@@ -178,26 +189,34 @@ public final class ChestItems {
                 }
                 inv.addItem(m);
             }
-        } catch (Exception e) { return false; }
+        } catch (Exception e) {
+            return false;
+        }
         return true;
     }
 
     /**
-	 * Tolerant NamespacedKey parser. Accepts both {@code minecraft:path} and
-	 * {@code namespace:path} forms. Falls back to {@link NamespacedKey#minecraft(String)}
-	 * when the namespace is missing. Returns {@code null} on any validation failure.
-	 */
-	public static NamespacedKey parseKey(String s) {
-		if (s == null || s.isEmpty()) return null;
-		String lower = s.toLowerCase();
-		String[] parts = lower.split(":", 2);
-		String ns   = parts.length == 2 ? parts[0] : "minecraft";
-		String path = parts.length == 2 ? parts[1] : parts[0];
-		if ("minecraft".equals(ns)) {
-			try { return NamespacedKey.minecraft(path); }
-			catch (Throwable t) { return null; }
-		}
-		try { return NamespacedKey.fromString(lower); }
-		catch (Throwable t) { return null; }
-	}
+     * Tolerant NamespacedKey parser. Accepts both {@code minecraft:path} and
+     * {@code namespace:path} forms. Falls back to {@link NamespacedKey#minecraft(String)}
+     * when the namespace is missing. Returns {@code null} on any validation failure.
+     */
+    public static NamespacedKey parseKey(String s) {
+        if (s == null || s.isEmpty()) return null;
+        String lower = s.toLowerCase();
+        String[] parts = lower.split(":", 2);
+        String ns = parts.length == 2 ? parts[0] : "minecraft";
+        String path = parts.length == 2 ? parts[1] : parts[0];
+        if ("minecraft".equals(ns)) {
+            try {
+                return NamespacedKey.minecraft(path);
+            } catch (Throwable t) {
+                return null;
+            }
+        }
+        try {
+            return NamespacedKey.fromString(lower);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
 }

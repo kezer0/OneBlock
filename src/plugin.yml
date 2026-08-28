@@ -3,8 +3,8 @@ main:  oneblock.OneBlock
 version:  1.6.2
 api-version: 1.13
 author:  MrMarL
-loadbefore: ['Multiverse-Core']
-softdepend: ['PlaceholderAPI', 'WorldGuard', 'ItemsAdder', 'Oraxen', 'Nexo', 'CraftEngine']
+depend: ['NetworkCore']
+softdepend: ['Vault', 'EternalEconomy', 'PlaceholderAPI', 'WorldGuard', 'ItemsAdder', 'Oraxen', 'Nexo', 'CraftEngine']
 
 commands:
   island:
@@ -36,7 +36,7 @@ permissions:
         default: op
     oneblock.idreset:
         description: Allows resetting your island ID
-        default: true
+        default: op
     oneblock.allow_visit:
         description: Allow players to open their island for visitors
         default: op

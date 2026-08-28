@@ -1,9 +1,9 @@
 package oneblock;
 
+import org.bukkit.Location;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import org.bukkit.Location;
 
 public final class IslandCoordinateCalculator {
 

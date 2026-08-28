@@ -13,25 +13,25 @@ import org.bukkit.World;
  * see the new world.
  */
 public final class WorldInitTask implements Runnable {
-  private final OneBlock plugin;
+    private final OneBlock plugin;
 
-  public WorldInitTask(OneBlock plugin) {
-    this.plugin = plugin;
-  }
+    public WorldInitTask(OneBlock plugin) {
+        this.plugin = plugin;
+    }
 
-  @Override
-  public void run() {
-      if (OneBlock.getWor() != null) return;
-      final World w = Bukkit.getWorld(OneBlock.config.getString("world"));
-      
-      if (w != null) {
-    	  OneBlock.ORIGIN.updateAndGet(prev -> new IslandOrigin(w, prev.x(), prev.y(), prev.z(), prev.offset()));
-    	  OneBlock.leavewor = Bukkit.getWorld(OneBlock.config.getString("leaveworld"));
-    	  plugin.getLogger().info("The initialization of the world was successful!");
-    	  plugin.runMainTask();
-    	  plugin.reload();
-      } else {
-    	  plugin.getLogger().info("Waiting for initialization of world '" + OneBlock.config.getString("world") + "'...");
-      }
-  }
+    @Override
+    public void run() {
+        if (OneBlock.getWor() != null) return;
+        final World w = Bukkit.getWorld(OneBlock.config.getString("world"));
+
+        if (w != null) {
+            OneBlock.ORIGIN.updateAndGet(prev -> new IslandOrigin(w, prev.x(), prev.y(), prev.z(), prev.offset()));
+            OneBlock.leavewor = Bukkit.getWorld(OneBlock.config.getString("leaveworld"));
+            plugin.getLogger().info("The initialization of the world was successful!");
+            plugin.runMainTask();
+            plugin.reload();
+        } else {
+            plugin.getLogger().info("Waiting for initialization of world '" + OneBlock.config.getString("world") + "'...");
+        }
+    }
 }

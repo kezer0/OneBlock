@@ -9,18 +9,18 @@ import org.bukkit.inventory.InventoryHolder;
  * persist the modified contents back to {@link oneblock.ChestItems}.
  */
 public class ChestHolder implements InventoryHolder {
-	private final String type;
+    private final String type;
 
-	public ChestHolder(String type) {
-		this.type = type;
-	}
+    public ChestHolder(String type) {
+        this.type = type;
+    }
 
-	public String getType() {
-		return type;
-	}
+    public String getType() {
+        return type;
+    }
 
-	@Override
-	public Inventory getInventory() {
-		return null;
-	}
+    @Override
+    public Inventory getInventory() {
+        return null;
+    }
 }

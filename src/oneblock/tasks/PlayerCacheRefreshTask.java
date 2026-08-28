@@ -1,8 +1,7 @@
 package oneblock.tasks;
 
-import org.bukkit.World;
-
 import oneblock.OneBlock;
+import org.bukkit.World;
 
 /**
  * Async-scheduled refresh of {@link oneblock.PlayerCache} contents from
@@ -13,7 +12,9 @@ import oneblock.OneBlock;
 public final class PlayerCacheRefreshTask implements Runnable {
     private final OneBlock plugin;
 
-    public PlayerCacheRefreshTask(OneBlock plugin) { this.plugin = plugin; }
+    public PlayerCacheRefreshTask(OneBlock plugin) {
+        this.plugin = plugin;
+    }
 
     @Override
     public void run() {

@@ -1,9 +1,8 @@
 package oneblock;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
+import com.cryptomorin.xseries.XBlock;
+import com.cryptomorin.xseries.XMaterial;
+import oneblock.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -11,24 +10,23 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 
-import com.cryptomorin.xseries.XBlock;
-import com.cryptomorin.xseries.XMaterial;
-
-import oneblock.utils.Utils;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public final class Island {
-    public static BlockData[][][] custom = null;
     private static final int SIZE = 7;
     private static final int HEIGHT = 12;
     private static final int OFFSET_Y = 5;
+    public static BlockData[][][] custom = null;
 
     public static HashMap<String, List<String>> map() {
         if (custom == null) return null;
-        
+
         HashMap<String, List<String>> map = new HashMap<>();
         for (int y = 0; y < HEIGHT; y++) {
             if (isLayerEmpty(y)) continue; // Skipping the empty layers
-            
+
             List<String> yData = new ArrayList<>();
             for (int x = 0; x < SIZE; x++) {
                 for (int z = 0; z < SIZE; z++) {
@@ -43,15 +41,15 @@ public final class Island {
     public static void read(FileConfiguration config) {
         custom = new BlockData[SIZE][HEIGHT][SIZE];
         BlockData AIR_DATA = Material.AIR.createBlockData();
-        
+
         // Initializing the array with air
         for (int y = 0; y < HEIGHT; y++) {
             fillLayer(y, AIR_DATA);
         }
-        
+
         for (int y = 0; y < HEIGHT; y++) {
             String configKey = String.format("custom_island.y%d", y - OFFSET_Y);
-            
+
             if (config.isList(configKey)) {
                 List<String> blockDataStrings = config.getStringList(configKey);
                 for (int x = 0; x < SIZE; x++) {
@@ -65,7 +63,7 @@ public final class Island {
 
     public static void scan(World world, int x, int y, int z) {
         custom = new BlockData[SIZE][HEIGHT][SIZE];
-        
+
         for (int xx = 0; xx < SIZE; xx++) {
             for (int yy = 0; yy < HEIGHT; yy++) {
                 for (int zz = 0; zz < SIZE; zz++) {
@@ -95,9 +93,9 @@ public final class Island {
     }
 
     public static void place(World world, int x, int y, int z) {
-    	XBlock.setType(world.getBlockAt(x, y, z), XMaterial.GRASS_BLOCK);
-    	
-    	if (!OneBlock.island_for_new_players) return;
+        XBlock.setType(world.getBlockAt(x, y, z), XMaterial.GRASS_BLOCK);
+
+        if (!OneBlock.island_for_new_players) return;
         if (custom == null) {
             createDefaultIsland(world, x, y, z);
             return;

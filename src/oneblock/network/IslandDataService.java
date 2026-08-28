@@ -1,27 +1,22 @@
 package oneblock.network;
 
-import java.io.File;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.logging.Level;
-
+import net.milkbowl.vault.economy.Economy;
+import oneblock.OneBlock;
+import oneblock.PlayerInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import oneblock.OneBlock;
-import oneblock.PlayerInfo;
+import java.io.File;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
 
 public final class IslandDataService {
     private static final ConcurrentMap<Integer, IslandSettings> SETTINGS = new ConcurrentHashMap<>();
@@ -31,20 +26,22 @@ public final class IslandDataService {
             new BigDecimal("0.00"), new BigDecimal("1000.00"), new BigDecimal("5000.00"),
             new BigDecimal("15000.00"), new BigDecimal("50000.00")};
 
-    private IslandDataService() {}
+    private IslandDataService() {
+    }
 
     public static void initialize(OneBlock plugin) {
         loadUpgradeConfig(plugin);
-        if (!NetworkDatabase.isEnabled()) return;
-        try {
-            for (NetworkDatabase.IslandSettingsRow row : NetworkDatabase.loadIslandSettings())
-                SETTINGS.put(row.islandId, new IslandSettings(row.allowVisits, row.visitorInteract, normalizeSize(row.buildingSize)));
-            for (NetworkDatabase.IslandMemberRow row : NetworkDatabase.loadIslandMembers())
-                MEMBERS.computeIfAbsent(row.islandId, k -> new ConcurrentHashMap<>()).put(row.uuid, row.role);
-            syncFromFork();
-        } catch (Exception ex) {
-            plugin.getLogger().log(Level.SEVERE, "Failed to load network island state", ex);
+        if (OneBlockDatabase.isEnabled()) {
+            try {
+                for (OneBlockDatabase.IslandSettingsRow row : OneBlockDatabase.loadIslandSettings())
+                    SETTINGS.put(row.islandId, new IslandSettings(row.allowVisits, row.visitorInteract, normalizeSize(row.buildingSize)));
+                for (OneBlockDatabase.IslandMemberRow row : OneBlockDatabase.loadIslandMembers())
+                    MEMBERS.computeIfAbsent(row.islandId, k -> new ConcurrentHashMap<>()).put(row.uuid, row.role);
+            } catch (Exception ex) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to load OneBlock database state", ex);
+            }
         }
+        syncFromFork();
     }
 
     private static void loadUpgradeConfig(OneBlock plugin) {
@@ -82,18 +79,24 @@ public final class IslandDataService {
     public static void ensureMember(int islandId, UUID uuid) {
         if (uuid == null) return;
         MEMBERS.computeIfAbsent(islandId, k -> new ConcurrentHashMap<>()).put(uuid, IslandRole.MEMBER);
-        if (NetworkDatabase.isEnabled()) Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
-            try { NetworkDatabase.setIslandMember(islandId, uuid, IslandRole.MEMBER); }
-            catch (Exception ex) { OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to save island member", ex); }
+        if (OneBlockDatabase.isEnabled()) Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
+            try {
+                OneBlockDatabase.setIslandMember(islandId, uuid, IslandRole.MEMBER);
+            } catch (Exception ex) {
+                OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to save island member", ex);
+            }
         });
     }
 
     private static void persistIslandAsync(int islandId, UUID owner, boolean allowVisit) {
-        if (!NetworkDatabase.isEnabled()) return;
+        if (!OneBlockDatabase.isEnabled()) return;
         IslandSettings settings = SETTINGS.get(islandId);
         Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
-            try { NetworkDatabase.ensureIsland(islandId, owner, allowVisit, settings == null ? OneBlock.STARTER_ISLAND_SIZE : settings.buildingSize); }
-            catch (Exception ex) { OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to persist island " + islandId, ex); }
+            try {
+                OneBlockDatabase.ensureIsland(islandId, owner, allowVisit, settings != null && settings.visitorInteract, settings == null ? OneBlock.STARTER_ISLAND_SIZE : settings.buildingSize);
+            } catch (Exception ex) {
+                OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to persist island " + islandId, ex);
+            }
         });
     }
 
@@ -103,7 +106,7 @@ public final class IslandDataService {
         IslandRole role = roles == null ? null : roles.get(uuid);
         if (role != null) return role;
         IslandSettings settings = SETTINGS.get(islandId);
-        return settings != null && settings.allowVisits ? IslandRole.VISITOR : IslandRole.VISITOR;
+        return IslandRole.VISITOR;
     }
 
     public static boolean hasPermission(UUID uuid, int islandId, IslandPermission permission) {
@@ -144,21 +147,27 @@ public final class IslandDataService {
     }
 
     private static void saveSettingsAsync(int islandId) {
-        if (!NetworkDatabase.isEnabled()) return;
+        if (!OneBlockDatabase.isEnabled()) return;
         IslandSettings s = SETTINGS.get(islandId);
         if (s == null) return;
         Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
-            try { NetworkDatabase.setIslandSettings(islandId, s.allowVisits, s.visitorInteract); }
-            catch (Exception ex) { OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to save island settings", ex); }
+            try {
+                OneBlockDatabase.setIslandSettings(islandId, s.allowVisits, s.visitorInteract, s.buildingSize);
+            } catch (Exception ex) {
+                OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to save island settings", ex);
+            }
         });
     }
 
     public static void removeMember(int islandId, UUID uuid) {
         Map<UUID, IslandRole> map = MEMBERS.get(islandId);
         if (map != null) map.remove(uuid);
-        if (NetworkDatabase.isEnabled()) Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
-            try { NetworkDatabase.removeIslandMember(islandId, uuid); }
-            catch (Exception ex) { OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to remove island member", ex); }
+        if (OneBlockDatabase.isEnabled()) Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
+            try {
+                OneBlockDatabase.removeIslandMember(islandId, uuid);
+            } catch (Exception ex) {
+                OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to remove island member", ex);
+            }
         });
     }
 
@@ -166,14 +175,18 @@ public final class IslandDataService {
         int islandId = PlayerInfo.getId(player.getUniqueId());
         if (islandId < 0) return false;
         PlayerInfo info = PlayerInfo.get(islandId);
-        if (info.uuid == null || !info.uuid.equals(player.getUniqueId()) || !info.uuids.contains(newOwner)) return false;
+        if (info.uuid == null || !info.uuid.equals(player.getUniqueId()) || !info.uuids.contains(newOwner))
+            return false;
         if (!PlayerInfo.transferOwnership(islandId, newOwner)) return false;
         ConcurrentMap<UUID, IslandRole> map = MEMBERS.computeIfAbsent(islandId, k -> new ConcurrentHashMap<>());
         map.put(player.getUniqueId(), IslandRole.MEMBER);
         map.put(newOwner, IslandRole.OWNER);
-        if (NetworkDatabase.isEnabled()) Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
-            try { NetworkDatabase.transferOwnership(islandId, player.getUniqueId(), newOwner); }
-            catch (Exception ex) { OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to transfer island ownership", ex); }
+        if (OneBlockDatabase.isEnabled()) Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
+            try {
+                OneBlockDatabase.transferOwnership(islandId, player.getUniqueId(), newOwner);
+            } catch (Exception ex) {
+                OneBlock.plugin.getLogger().log(Level.WARNING, "Failed to transfer island ownership", ex);
+            }
         });
         return true;
     }
@@ -203,41 +216,56 @@ public final class IslandDataService {
         return null;
     }
 
-    public static boolean canUpgrade(int islandId) { return getNextBuildingSize(islandId) > getBuildingSize(islandId); }
+    public static boolean canUpgrade(int islandId) {
+        return getNextBuildingSize(islandId) > getBuildingSize(islandId);
+    }
 
     public static void upgrade(Player owner) {
         if (owner == null) return;
         UUID uuid = owner.getUniqueId();
         int islandId = PlayerInfo.getId(uuid);
-        if (islandId < 0 || !PlayerInfo.existsAsOwner(uuid) || !hasPermission(uuid, islandId, IslandPermission.SETTINGS)) return;
+        if (islandId < 0 || !PlayerInfo.existsAsOwner(uuid) || !hasPermission(uuid, islandId, IslandPermission.SETTINGS))
+            return;
         final int next = getNextBuildingSize(islandId);
         final BigDecimal price = getNextUpgradePrice(islandId);
         if (price == null) return;
-
-        if (!NetworkDatabase.isEnabled()) {
-            owner.sendMessage("§cThe network database is not available.");
+        Economy economy = getEconomy();
+        if (economy == null) {
+            owner.sendMessage("§cNo Vault economy provider is available.");
+            return;
+        }
+        if (!economy.has(owner, price.doubleValue())) {
+            owner.sendMessage("§cYou do not have enough money for this upgrade.");
+            return;
+        }
+        if (!economy.withdrawPlayer(owner, price.doubleValue()).transactionSuccess()) {
+            owner.sendMessage("§cThe payment could not be completed.");
             return;
         }
         Bukkit.getScheduler().runTaskAsynchronously(OneBlock.plugin, () -> {
             try {
-                if (!NetworkDatabase.purchaseUpgrade(islandId, uuid, next, price)) {
-                    owner.sendMessage("§cYou do not have enough money for this upgrade.");
-                    return;
-                }
-                IslandSettings settings = SETTINGS.computeIfAbsent(islandId, k -> new IslandSettings(false, false, OneBlock.STARTER_ISLAND_SIZE));
-                settings.buildingSize = next;
-                PlayerData data = PlayerDataManager.get(owner);
-                if (data != null) data.setBalance(NetworkDatabase.getBalance(uuid));
+                if (!OneBlockDatabase.isEnabled()) throw new SQLException("OneBlock database unavailable");
+                OneBlockDatabase.updateBuildingSize(islandId, next);
+                SETTINGS.computeIfAbsent(islandId, k -> new IslandSettings(false, false, OneBlock.STARTER_ISLAND_SIZE)).buildingSize = next;
                 Bukkit.getScheduler().runTask(OneBlock.plugin, () -> {
                     owner.sendMessage("§aYour island building area has been expanded to §f" + next + "x" + next + "§a.");
                     if (oneblock.worldguard.OBWorldGuard.isEnabled()) OneBlock.plugin.worldGuard.recreateRegions();
                     OneBlock.plugin.UpdateBorderLocation(owner, owner.getLocation());
                 });
             } catch (Exception ex) {
-                OneBlock.plugin.getLogger().log(Level.WARNING, "Island upgrade failed", ex);
-                owner.sendMessage("§cThe upgrade could not be completed.");
+                Bukkit.getScheduler().runTask(OneBlock.plugin, () -> {
+                    Economy e = getEconomy();
+                    if (e != null) e.depositPlayer(owner, price.doubleValue());
+                    owner.sendMessage("§cThe upgrade could not be saved. Your money was returned.");
+                });
+                OneBlock.plugin.getLogger().log(Level.WARNING, "Island upgrade persistence failed", ex);
             }
         });
+    }
+
+    private static Economy getEconomy() {
+        org.bukkit.plugin.RegisteredServiceProvider<Economy> r = Bukkit.getServicesManager().getRegistration(Economy.class);
+        return r == null ? null : r.getProvider();
     }
 
     private static int normalizeSize(int size) {
@@ -249,8 +277,11 @@ public final class IslandDataService {
         volatile boolean allowVisits;
         volatile boolean visitorInteract;
         volatile int buildingSize;
+
         IslandSettings(boolean allowVisits, boolean visitorInteract, int buildingSize) {
-            this.allowVisits = allowVisits; this.visitorInteract = visitorInteract; this.buildingSize = buildingSize;
+            this.allowVisits = allowVisits;
+            this.visitorInteract = visitorInteract;
+            this.buildingSize = buildingSize;
         }
     }
 }

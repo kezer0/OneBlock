@@ -1,9 +1,6 @@
 package oneblock.events;
 
-import static oneblock.OneBlock.*;
-
-import java.util.UUID;
-
+import oneblock.PlayerInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -16,46 +13,50 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.util.Vector;
 
-import oneblock.PlayerInfo;
+import java.util.UUID;
+
+import static oneblock.OneBlock.*;
 
 public class BlockEvent implements Listener {
-	protected static final double DROP_TELEPORT_HEIGHT_OFFSET = 0.8;
-	protected static final Vector UPWARD_VELOCITY = new Vector(0, .1, 0);
-	
-	@EventHandler
-	public void ItemStackSpawn(final ItemSpawnEvent e) {
-		if (!droptossup) return;
-		World world = getWorld();
-		if (world == null) return;
-        
-		Entity drop = e.getEntity();
-		Location loc = drop.getLocation();
-		
-		if (!world.equals(loc.getWorld())) return;
-		if (loc.getBlockY() != getY()) return;
-		if ((getX() - loc.getBlockX()) % getOffset() != 0) return;
-		if ((getZ() - loc.getBlockZ()) % getOffset() != 0) return;
-		
-		loc.add(0, DROP_TELEPORT_HEIGHT_OFFSET, 0);
-		drop.teleport(loc);
-		drop.setVelocity(UPWARD_VELOCITY);
+    protected static final double DROP_TELEPORT_HEIGHT_OFFSET = 0.8;
+    protected static final Vector UPWARD_VELOCITY = new Vector(0, .1, 0);
+
+    @EventHandler
+    public void ItemStackSpawn(final ItemSpawnEvent e) {
+        if (!droptossup) return;
+        World world = getWorld();
+        if (world == null) return;
+
+        Entity drop = e.getEntity();
+        Location loc = drop.getLocation();
+
+        if (!world.equals(loc.getWorld())) return;
+        if (loc.getBlockY() != getY()) return;
+        if ((getX() - loc.getBlockX()) % getOffset() != 0) return;
+        if ((getZ() - loc.getBlockZ()) % getOffset() != 0) return;
+
+        loc.add(0, DROP_TELEPORT_HEIGHT_OFFSET, 0);
+        drop.teleport(loc);
+        drop.setVelocity(UPWARD_VELOCITY);
     }
-	
-	@EventHandler
-	public void BlockBreak(final BlockBreakEvent e) {
-		World world = getWorld();
-		if (world == null) return;
-		final Block block = e.getBlock();
-		if (block.getWorld() != world) return;
-		if (block.getY() != getY()) return;
-		final Player ponl = e.getPlayer();
-		final UUID uuid = ponl.getUniqueId();
-		final int plID = PlayerInfo.getId(uuid);
-		if (plID == -1) return;
-		final int result[] = plugin.getIslandCoordinates(plID);
-		if (block.getX() != result[0]) return;
-		if (block.getZ() != result[1]) return;
-		
-		Bukkit.getScheduler().runTaskLater(plugin, () -> {plugin.BlockGen(result[0], result[1], plID, ponl, block);}, 1L);
-	}
+
+    @EventHandler
+    public void BlockBreak(final BlockBreakEvent e) {
+        World world = getWorld();
+        if (world == null) return;
+        final Block block = e.getBlock();
+        if (block.getWorld() != world) return;
+        if (block.getY() != getY()) return;
+        final Player ponl = e.getPlayer();
+        final UUID uuid = ponl.getUniqueId();
+        final int plID = PlayerInfo.getId(uuid);
+        if (plID == -1) return;
+        final int[] result = plugin.getIslandCoordinates(plID);
+        if (block.getX() != result[0]) return;
+        if (block.getZ() != result[1]) return;
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            plugin.BlockGen(result[0], result[1], plID, ponl, block);
+        }, 1L);
+    }
 }
