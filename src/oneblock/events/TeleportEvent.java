@@ -1,20 +1,43 @@
 package oneblock.events;
 
-import oneblock.PlayerInfo;
+import static oneblock.OneBlock.*;
+
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.util.Vector;
 
-import static oneblock.OneBlock.*;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import oneblock.PlayerInfo;
 
 public class TeleportEvent implements Listener {
+    private static final Set<UUID> VOID_RESCUE_DAMAGE_GUARD = ConcurrentHashMap.newKeySet();
+
+    /** Cancels fall damage caused by the void-rescue teleport. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void cancelVoidRescueFallDamage(EntityDamageEvent event) {
+        Entity entity = event.getEntity();
+        if (!(entity instanceof Player)) return;
+        if (event.getCause() != DamageCause.FALL) return;
+        if (VOID_RESCUE_DAMAGE_GUARD.remove(entity.getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
     @EventHandler
     public void Teleport(final PlayerTeleportEvent e) {
         if (!border) return;
@@ -63,14 +86,24 @@ public class TeleportEvent implements Listener {
 
         Player p = e.getPlayer();
         int plID = PlayerInfo.getId(p.getUniqueId());
+
+        // Clear the falling state before teleporting so the landing is not
+        // followed by inherited downward momentum or fall damage.
+        VOID_RESCUE_DAMAGE_GUARD.add(p.getUniqueId());
+        p.setFallDistance(0.0F);
+        p.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
+
         if (plID == -1) {
             p.teleport(plugin.getLeave());
-            return;
+        } else {
+            int[] result = plugin.getIslandCoordinates(plID);
+            Location home = new Location(getWorld(), result[0] + 0.5, getY() + 1.2013, result[1] + 0.5,
+                    p.getLocation().getYaw(), p.getLocation().getPitch());
+            p.teleport(home);
         }
 
-        int[] result = plugin.getIslandCoordinates(plID);
-        Location home = new Location(getWorld(), result[0] + 0.5, getY() + 1.2013, result[1] + 0.5,
-                p.getLocation().getYaw(), p.getLocation().getPitch());
-        p.teleport(home);
+        // Keep the guard alive long enough for a same-tick fall-damage event,
+        // but do not leave stale UUIDs around.
+        Bukkit.getScheduler().runTaskLater(plugin, () -> VOID_RESCUE_DAMAGE_GUARD.remove(p.getUniqueId()), 2L);
     }
 }

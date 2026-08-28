@@ -1,9 +1,13 @@
 package oneblock.gui;
 
-import com.cryptomorin.xseries.XMaterial;
-import oneblock.*;
-import oneblock.network.IslandDataService;
-import oneblock.network.IslandPermission;
+import static oneblock.OneBlock.*;
+import static oneblock.utils.Utils.getBase64Head;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -14,15 +18,23 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
-import java.util.*;
+import com.cryptomorin.xseries.XMaterial;
 
-import static oneblock.utils.Utils.getBase64Head;
+import oneblock.ChestItems;
+import oneblock.Level;
+import oneblock.Messages;
+import oneblock.OneBlock;
+import oneblock.PlayerInfo;
+import oneblock.utils.Utils;
+import oneblock.network.IslandDataService;
+import oneblock.network.IslandPermission;
 
 public class GUI {
-    private static final int SIZE = 54;
-    private static final int[] BORDER = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53};
     public static boolean enabled = true;
     public static boolean legacy = false;
+
+    private static final int SIZE = 54;
+    private static final int[] BORDER = {0,1,2,3,4,5,6,7,8,9,17,18,26,27,35,36,44,45,46,47,48,49,50,51,52,53};
 
     public static void openGUI(Player p) {
         if (!enabled || p == null) return;
@@ -107,7 +119,7 @@ public class GUI {
                 ChatColor.DARK_GREEN + "Island Phases");
         fillBorder45(inv);
         int max = Math.min(Level.size(), 27);
-        int[] phaseSlots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42};
+        int[] phaseSlots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42};
         for (int i = 0; i < max; i++) {
             Level level = Level.get(i);
             ChatColor color = i < inf.lvl ? ChatColor.GREEN : (i == inf.lvl ? ChatColor.YELLOW : ChatColor.GRAY);
@@ -183,7 +195,7 @@ public class GUI {
         inv.setItem(11, item(XMaterial.GOLD_BLOCK, ChatColor.GOLD + "Current Area",
                 ChatColor.GRAY + "" + current + "x" + current + " building area"));
         inv.setItem(15, item(XMaterial.DIAMOND, ChatColor.AQUA + "Maximum",
-                ChatColor.GRAY + "" + OneBlock.MAX_ISLAND_SIZE + "x" + OneBlock.MAX_ISLAND_SIZE + " maximum"));
+                ChatColor.GRAY+ "" + OneBlock.MAX_ISLAND_SIZE + "x" + OneBlock.MAX_ISLAND_SIZE + " maximum"));
         inv.setItem(18, item(XMaterial.ARROW, ChatColor.YELLOW + "Back", ChatColor.GRAY + "Return to the island menu."));
         inv.setItem(22, item(XMaterial.BARRIER, ChatColor.RED + "Close", ChatColor.GRAY + "Close this menu."));
         p.openInventory(inv);
@@ -207,7 +219,7 @@ public class GUI {
         }
         inv.setItem(13, ownerHead);
 
-        int[] memberSlots = {28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
+        int[] memberSlots = {28,29,30,31,32,33,34,37,38,39,40,41,42,43};
         int memberIndex = 0;
         for (UUID uuid : inf.uuids) {
             if (memberIndex >= memberSlots.length) break;
@@ -277,18 +289,17 @@ public class GUI {
                 ChatColor.DARK_GREEN + "Invite Player");
         fillBorder(inv);
         PlayerInfo inf = islandInfo(p);
-        int[] playerSlots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
+        int[] playerSlots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42,43};
         int playerIndex = 0;
         if (inf != null) {
             for (Player candidate : Bukkit.getOnlinePlayers()) {
-                if (candidate.getUniqueId().equals(p.getUniqueId()) || inf.uuids.contains(candidate.getUniqueId()))
-                    continue;
+                if (candidate.getUniqueId().equals(p.getUniqueId()) || inf.uuids.contains(candidate.getUniqueId())) continue;
                 if (playerIndex >= playerSlots.length) break;
                 int slot = playerSlots[playerIndex++];
                 ItemStack head = getPlayerHead(candidate, ChatColor.GREEN + candidate.getName());
                 ItemMeta meta = head.getItemMeta();
                 if (meta != null) {
-                    meta.setLore(Collections.singletonList(ChatColor.GRAY + "Click to invite this player."));
+                    meta.setLore(Arrays.asList(ChatColor.GRAY + "Click to invite this player."));
                     head.setItemMeta(meta);
                 }
                 inv.setItem(slot++, head);
@@ -332,7 +343,7 @@ public class GUI {
             if (islandId < 0 || !IslandDataService.canVisitIsland(islandId)) continue;
             matched.add(pl);
         }
-        int[] visitSlots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
+        int[] visitSlots = {10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42,43};
         int visitIndex = 0;
         for (OfflinePlayer pl : matched) {
             if (visitIndex >= visitSlots.length) break;
@@ -426,8 +437,7 @@ public class GUI {
         ItemStack pane = item(XMaterial.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < 9; i++) inv.setItem(i, pane);
         for (int i = 18; i < 27; i++) inv.setItem(i, pane);
-        inv.setItem(9, pane);
-        inv.setItem(17, pane);
+        inv.setItem(9, pane); inv.setItem(17, pane);
     }
 
     private static void setTop(Inventory inv, int slot, int index, XMaterial material, String prefix) {

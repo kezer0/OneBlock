@@ -1,5 +1,10 @@
 package oneblock;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.command.Command;
@@ -8,13 +13,8 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.loot.LootTables;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 public final class CommandTabCompleter implements TabCompleter {
-    private final List<String> BASE_COMMANDS = Arrays.asList("j","join","leave","spawn","invite","accept","kick","upgrade","transfer","help","gui","top");
+    private final List<String> BASE_COMMANDS = Arrays.asList("j","home","join","leave","spawn","invite","accept","kick","upgrade","transfer","help","gui","top");
     private final List<String> VISIT_COMMANDS = Arrays.asList("v","visit");
     private final List<String> ADMIN_COMMANDS = Arrays.asList("set","setleave","progress_bar","setlevel","clear","circlemode","lvl_mult","max_players_team", "chest", "saveplayerinventory",
             "reload","islands","rebirth_on_the_island","protection","worldguard","border","listlvl","autoJoin","droptossup","physics","particle","allow_nether","useEmptyIslands");

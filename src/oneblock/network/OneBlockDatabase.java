@@ -1,23 +1,51 @@
 package oneblock.network;
 
 import me.kezer0.networkCore.api.DatabaseService;
-import oneblock.OneBlock;
 import org.bukkit.Bukkit;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * OneBlock-owned repository using NetworkCore's shared PostgreSQL pool.
- */
+import oneblock.OneBlock;
+
+/** OneBlock-owned repository using NetworkCore's shared PostgreSQL pool. */
 public final class OneBlockDatabase {
+    public static final class IslandSettingsRow {
+        public final int islandId;
+        public final boolean allowVisits;
+        public final boolean visitorInteract;
+        public final int buildingSize;
+
+        public IslandSettingsRow(int islandId, boolean allowVisits, boolean visitorInteract, int buildingSize) {
+            this.islandId = islandId;
+            this.allowVisits = allowVisits;
+            this.visitorInteract = visitorInteract;
+            this.buildingSize = buildingSize;
+        }
+    }
+
+    public static final class IslandMemberRow {
+        public final int islandId;
+        public final UUID uuid;
+        public final IslandRole role;
+
+        public IslandMemberRow(int islandId, UUID uuid, IslandRole role) {
+            this.islandId = islandId;
+            this.uuid = uuid;
+            this.role = role;
+        }
+    }
+
     private static DatabaseService database;
     private static volatile boolean enabled;
 
-    private OneBlockDatabase() {
-    }
+    private OneBlockDatabase() {}
 
     public static void initialize(OneBlock plugin) {
         org.bukkit.plugin.RegisteredServiceProvider<DatabaseService> registration = Bukkit.getServicesManager().getRegistration(DatabaseService.class);
@@ -91,8 +119,7 @@ public final class OneBlockDatabase {
         try (Connection c = connection();
              PreparedStatement p = c.prepareStatement("SELECT island_id,allow_visits,visitor_interact,building_size FROM oneblock.islands");
              ResultSet r = p.executeQuery()) {
-            while (r.next())
-                rows.add(new IslandSettingsRow(r.getInt(1), r.getBoolean(2), r.getBoolean(3), r.getInt(4)));
+            while (r.next()) rows.add(new IslandSettingsRow(r.getInt(1), r.getBoolean(2), r.getBoolean(3), r.getInt(4)));
         }
         return rows;
     }
@@ -118,7 +145,7 @@ public final class OneBlockDatabase {
             c.setAutoCommit(false);
             try (PreparedStatement p = c.prepareStatement(
                     "INSERT INTO oneblock.islands(island_id,owner_uuid,allow_visits,visitor_interact,building_size) VALUES(?,?,?,?,?) " +
-                            "ON CONFLICT(island_id) DO UPDATE SET owner_uuid=EXCLUDED.owner_uuid,updated_at=CURRENT_TIMESTAMP")) {
+                    "ON CONFLICT(island_id) DO UPDATE SET owner_uuid=EXCLUDED.owner_uuid,updated_at=CURRENT_TIMESTAMP")) {
                 p.setInt(1, islandId);
                 p.setObject(2, owner);
                 p.setBoolean(3, allowVisits);
@@ -128,7 +155,7 @@ public final class OneBlockDatabase {
             }
             try (PreparedStatement p = c.prepareStatement(
                     "INSERT INTO oneblock.island_members(island_id,player_uuid,role) VALUES(?,?, 'OWNER') " +
-                            "ON CONFLICT(island_id,player_uuid) DO UPDATE SET role='OWNER'")) {
+                    "ON CONFLICT(island_id,player_uuid) DO UPDATE SET role='OWNER'")) {
                 p.setInt(1, islandId);
                 p.setObject(2, owner);
                 p.executeUpdate();
@@ -141,7 +168,7 @@ public final class OneBlockDatabase {
         if (role == IslandRole.VISITOR) return;
         try (Connection c = connection(); PreparedStatement p = c.prepareStatement(
                 "INSERT INTO oneblock.island_members(island_id,player_uuid,role) VALUES(?,?,?) " +
-                        "ON CONFLICT(island_id,player_uuid) DO UPDATE SET role=EXCLUDED.role")) {
+                "ON CONFLICT(island_id,player_uuid) DO UPDATE SET role=EXCLUDED.role")) {
             p.setInt(1, islandId);
             p.setObject(2, uuid);
             p.setString(3, role.name());
@@ -184,10 +211,10 @@ public final class OneBlockDatabase {
             try (PreparedStatement p1 = c.prepareStatement(
                     "UPDATE oneblock.islands SET owner_uuid=?,updated_at=CURRENT_TIMESTAMP WHERE island_id=?");
                  PreparedStatement p2 = c.prepareStatement(
-                         "UPDATE oneblock.island_members SET role='MEMBER' WHERE island_id=? AND player_uuid=?");
+                    "UPDATE oneblock.island_members SET role='MEMBER' WHERE island_id=? AND player_uuid=?");
                  PreparedStatement p3 = c.prepareStatement(
-                         "INSERT INTO oneblock.island_members(island_id,player_uuid,role) VALUES(?,?, 'OWNER') " +
-                                 "ON CONFLICT(island_id,player_uuid) DO UPDATE SET role='OWNER'")) {
+                    "INSERT INTO oneblock.island_members(island_id,player_uuid,role) VALUES(?,?, 'OWNER') " +
+                    "ON CONFLICT(island_id,player_uuid) DO UPDATE SET role='OWNER'")) {
                 p1.setObject(1, newOwner);
                 p1.setInt(2, islandId);
                 if (p1.executeUpdate() != 1) throw new SQLException("Island does not exist");
@@ -204,32 +231,6 @@ public final class OneBlockDatabase {
             } finally {
                 c.setAutoCommit(true);
             }
-        }
-    }
-
-    public static final class IslandSettingsRow {
-        public final int islandId;
-        public final boolean allowVisits;
-        public final boolean visitorInteract;
-        public final int buildingSize;
-
-        public IslandSettingsRow(int islandId, boolean allowVisits, boolean visitorInteract, int buildingSize) {
-            this.islandId = islandId;
-            this.allowVisits = allowVisits;
-            this.visitorInteract = visitorInteract;
-            this.buildingSize = buildingSize;
-        }
-    }
-
-    public static final class IslandMemberRow {
-        public final int islandId;
-        public final UUID uuid;
-        public final IslandRole role;
-
-        public IslandMemberRow(int islandId, UUID uuid, IslandRole role) {
-            this.islandId = islandId;
-            this.uuid = uuid;
-            this.role = role;
         }
     }
 }
